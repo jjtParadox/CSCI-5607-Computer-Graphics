@@ -80,7 +80,7 @@ class Material(var ambient: RayColor, var diffuse: RayColor, var specular: RayCo
 interface RayIntersector {
     fun intersect(ray: Ray): Point3d?
 
-    fun colorAt(point: Point3d): RayColor
+    fun ambientAt(point: Point3d): RayColor
     fun diffuseAt(point: Point3d): RayColor
     fun specAt(point: Point3d): RayColor
     fun phongExpAt(point: Point3d): Double
@@ -105,7 +105,7 @@ data class Sphere(var pos: Point3d, var r: Double, var material: Material) : Ray
         return if (p1.distanceSquared(ray.pos) < p2.distanceSquared(ray.pos)) p1 else p2
     }
 
-    override fun colorAt(point: Point3d) = material.ambient//colorGradientAt(point)
+    override fun ambientAt(point: Point3d) = material.ambient
     override fun diffuseAt(point: Point3d) = material.diffuse
     override fun specAt(point: Point3d) = material.specular
     override fun phongExpAt(point: Point3d) = material.phongExp
@@ -128,8 +128,7 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
     fun findIntersectionColor(ray: Ray): RayColor {
         val collisions = findIntersections(ray)
         val (obj, point) = collisions.minBy { it.value.distanceSquared(camera.pos) } ?: return background
-        val color = obj.colorAt(point)
-        return color * lightingAt(point, obj)
+        return lightingAt(point, obj)
     }
 
     fun findIntersections(ray: Ray): Map<RayIntersector, Point3d> {
@@ -142,22 +141,23 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
     }
 
     fun lightingAt(point: Point3d, obj: RayIntersector): RayColor {
-        if (lights.isEmpty()) return ambient
         return lights.fold(RayColor(0.0, 0.0, 0.0)) { acc, light ->
-            val lightVec = (light.pos - point).apply { this.normalize() }
+            val lightVec = (light.pos - point)
+            val lightDist = lightVec.lengthSquared
+            lightVec.normalize()
             val normal = obj.normalAt(point)
             if (lightVec dot normal < 0)
-                return acc
+                return@fold acc
 
             val shadowRay = Ray(point + 1e-10 * normal, lightVec)
             if (findIntersections(shadowRay).isNotEmpty())
-                return acc
+                return@fold acc
 
             val lightRefl = lightVec - 2 * (lightVec dot normal) * normal
             lightRefl.negate()
             val viewVec = (camera.pos - point).apply { this.normalize() }
-            val lighting = obj.specAt(point) * (viewVec dot lightRefl).pow(obj.phongExpAt(point)) + obj.diffuseAt(point) * (lightVec dot normal)
-            return acc + lighting
-        } + ambient
+            val lighting = obj.specAt(point) * light.color * 1.0/lightDist * (viewVec dot lightRefl).pow(obj.phongExpAt(point)) + obj.diffuseAt(point)  * light.color * 1.0/lightDist * (lightVec dot normal)
+            return@fold acc + lighting
+        } + ambient * obj.ambientAt(point)
     }
 }

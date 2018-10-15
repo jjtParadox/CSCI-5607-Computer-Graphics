@@ -1,10 +1,11 @@
 plugins {
     id 'idea'
     id 'org.jetbrains.kotlin.jvm' version '1.2.71'
+    id "com.github.johnrengelman.shadow" version "4.0.1"
 }
 
 group 'com.jjtparadox.csci5607'
-version '1.0-SNAPSHOT'
+version ''
 
 repositories {
     mavenCentral()
@@ -12,7 +13,7 @@ repositories {
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.30.2'
+//    compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.30.2'
     compile 'no.tornado:tornadofx:1.7.17'
 }
 
@@ -21,6 +22,12 @@ compileKotlin {
 }
 compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'AppKt'
+    }
 }
 
 idea {

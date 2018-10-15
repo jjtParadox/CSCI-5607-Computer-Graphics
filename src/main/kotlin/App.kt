@@ -7,28 +7,34 @@ import javax.imageio.ImageIO
 var rayScene: Scene? = null
 
 fun main(vararg args: String?) {
-    val sceneFile = args[0]
+    // Parse scene file to get width and height before launching GUI
+    val sceneFile = if (args.isNotEmpty()) args[0] else null
     if (!sceneFile.isNullOrBlank()) {
-        rayScene = parseSceneFile(File(sceneFile))
+        rayScene = parseSceneFile(File(sceneFile)) // in SceneParser.kt
     }
+
     launch<RayApp>()
 }
 
 class RayApp: App(RayView::class)
 
 class RayView: View() {
+    // Where stuff gets drawn. Creates canvas with size from scene file (default 800x500 if no file provided) and adds "Loading" text
     val display = canvas(rayScene?.camera?.width ?: 800.0, rayScene?.camera?.height ?: 500.0) {
         graphicsContext2D.fillText("Loading...", 70.0, 105.0)
     }
 
+    // Creates view structure with canvas and export button
     override val root = vbox {
         add(display)
         button("Export") {
             action {
+                // Export PNG from what's shown on the canvas
                 val image = WritableImage(display.width.toInt(), display.height.toInt())
                 display.snapshot(null, image)
                 ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", File("export.png"))
 
+                // Show confirmation text for 3 seconds
                 text = "Exported to export.png"
                 runAsync {
                     Thread.sleep(3000)
@@ -38,14 +44,16 @@ class RayView: View() {
             }
         }
 
+        // Render scene in background
         runAsync {
             val scene = rayScene
             if (scene != null) {
-                createRaycast(scene)
+                createRaycast(scene) // in RayTracer.kt
             } else {
-                createRaycast(display.width.toInt(), display.height.toInt())
+                createRaycast(display.width.toInt(), display.height.toInt()) // in RayTracer.kt
             }
         } ui {
+            // Update canvas with returned image (stored in 'it')
             display.graphicsContext2D.drawImage(it, 0.0, 0.0)
         }
     }

@@ -5,6 +5,7 @@ import kotlin.collections.LinkedHashMap
 import kotlin.math.*
 import kotlin.system.measureTimeMillis
 
+// Example scene (currently broken)
 fun createRaycast(w: Int, h: Int): Image {
     val camera = Camera(Point3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0), 0.2, w.toDouble(), h.toDouble())
 //    val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, RayColor(200.0, 100.0, 100.0))
@@ -15,16 +16,20 @@ fun createRaycast(w: Int, h: Int): Image {
 }
 
 fun createRaycast(scene: Scene): Image {
+    // Hardcoded jitter switch (Looks bad on spheres, so disabled)
     val jitter = false
     val w = scene.camera.width.roundToInt()
     val h = scene.camera.height.roundToInt()
+    // Create an image to write to
     val img = WritableImage(w, h)
     val px = img.pixelWriter
 
+    // Measure time of what occurs in the brackets so I can improve later
     val time = measureTimeMillis {
         for (x in 0 until w) {
             for (y in 0 until h) {
                 val samples = LinkedList<RayColor>()
+                // Take 9 samples per pixel
                 for (i in 1..3) {
                     for (j in 1..3) {
                         val ray = if (jitter)
@@ -35,6 +40,9 @@ fun createRaycast(scene: Scene): Image {
                         samples.add(point)
                     }
                 }
+                // Set pixel position (x, y) to the average of the 9 samples
+                // fold {} takes an initial value and a lambda operation to do on each element of the list
+                // Here, it's starting at black and adding 1/9th of each sample to that black ("acc" is the in-progres sum)
                 px.setColor(x, y, samples.fold(RayColor(0.0, 0.0, 0.0)) { acc, color -> acc + color/9.0 }.toColor())
             }
         }
@@ -52,6 +60,7 @@ data class Camera(val pos: Point3d, val towards: Vector3d, val up: Vector3d, val
     val dist = height/2 * 1.0/tan(yFrustum)
     val xFrustum = atan2(width/2, dist)
 
+    // Infix function equivalent to towards.cross(up) (defined in Math.kt)
     val right = towards cross up
 
     init {
@@ -68,6 +77,7 @@ data class Camera(val pos: Point3d, val towards: Vector3d, val up: Vector3d, val
         val x = leftPoint.lerp(rightPoint, i) - centerPoint
         val y = upPoint.lerp(downPoint, j) - centerPoint
         val point = x + y + centerPoint
+        // Take the result of (point - pos) and normalize it
         val vector = (point - pos).apply { this.normalize() }
         return Ray(pos, vector)
     }
@@ -88,7 +98,6 @@ interface RayIntersector {
     fun normalAt(point: Point3d): Vector3d
 }
 
-//data class Sphere(var pos: Point3d, var r: Double, var color: RayColor, var diffuse: Double = 1.0, var spec: Double = 3.0, var phong: Double = 30.0) : RayIntersector {
 data class Sphere(var pos: Point3d, var r: Double, var material: Material) : RayIntersector {
     override fun intersect(ray: Ray): Point3d? {
         val a = ray.vec.lengthSquared
@@ -112,6 +121,7 @@ data class Sphere(var pos: Point3d, var r: Double, var material: Material) : Ray
 
     override fun normalAt(point: Point3d) = (point - pos).apply { this.normalize() }
 
+    // Used in example scene to produce a two-toned sphere. Currently unused
     private fun colorGradientAt(point: Point3d): RayColor {
         val vec = point - pos
         return material.ambient.lerp(RayColor(1.0, 1.0, 1.0) - material.ambient, (vec.z + r) / (2*r))
@@ -126,7 +136,9 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
     fun constructRay(i: Double, j: Double) = camera.constructRay(i, j)
 
     fun findIntersectionColor(ray: Ray): RayColor {
+        // Create map of objects to collision points
         val collisions = findIntersections(ray)
+        // Get the object and collision point that is closest to the camera. If collisions is empty (collisions.minBy() returns null), return background color
         val (obj, point) = collisions.minBy { it.value.distanceSquared(camera.pos) } ?: return background
         return lightingAt(point, obj)
     }
@@ -141,23 +153,24 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
     }
 
     fun lightingAt(point: Point3d, obj: RayIntersector): RayColor {
+        // Sum up the lights
         return lights.fold(RayColor(0.0, 0.0, 0.0)) { acc, light ->
             val lightVec = (light.pos - point)
             val lightDist = lightVec.lengthSquared
             lightVec.normalize()
             val normal = obj.normalAt(point)
             if (lightVec dot normal < 0)
-                return@fold acc
+                return@fold acc // If dot is negative, don't change the running sum (return acc to the fold lambda unchanged)
 
             val shadowRay = Ray(point + 1e-10 * normal, lightVec)
             if (findIntersections(shadowRay).isNotEmpty())
-                return@fold acc
+                return@fold acc // If point is in shadow, don't change the running sum
 
             val lightRefl = lightVec - 2 * (lightVec dot normal) * normal
             lightRefl.negate()
             val viewVec = (camera.pos - point).apply { this.normalize() }
             val lighting = obj.specAt(point) * light.color * 1.0/lightDist * (viewVec dot lightRefl).pow(obj.phongExpAt(point)) + obj.diffuseAt(point)  * light.color * 1.0/lightDist * (lightVec dot normal)
-            return@fold acc + lighting
-        } + ambient * obj.ambientAt(point)
+            return@fold acc + lighting // Add lighting to the running sum
+        } + ambient * obj.ambientAt(point) // Add ambient to the sum of lights
     }
 }

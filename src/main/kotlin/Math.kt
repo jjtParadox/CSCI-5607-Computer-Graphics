@@ -1,10 +1,14 @@
 import javafx.scene.paint.Color
 import kotlin.math.sqrt
 
+// Math-oriented classes
+
 data class RayColor(var r: Double, var g: Double, var b: Double) {
     fun toColor() = Color(r.coerceIn(0.0, 1.0), g.coerceIn(0.0, 1.0), b.coerceIn(0.0, 1.0), 1.0)
 }
 
+// Operator overloads and other utility functions
+// Defined outside the above class so I can override them later if I implement object pooling
 operator fun RayColor.plus(c: RayColor) = copy(r = r + c.r, g = g + c.g, b = b + c.b)
 operator fun RayColor.minus(c: RayColor) = copy(r = r - c.r, g = g - c.g, b = b - c.b)
 operator fun RayColor.times(c: RayColor) = copy(r = r * c.r, g = g * c.g, b = b * c.b)
@@ -56,6 +60,7 @@ data class Vector3d(var x: Double, var y: Double, var z: Double) {
 operator fun Vector3d.plus(v: Vector3d) = copy(x = x + v.x, y = y + v.y, z = z + v.z)
 operator fun Vector3d.plus(p: Point3d) = p + this
 operator fun Vector3d.minus(v: Vector3d) = copy(x = x - v.x, y = y - v.y, z = z - v.z)
+// Infix functions allow me to do "v1 cross v2" instead of "v1.cross(v2)"
 infix fun Vector3d.dot(v: Vector3d) = x*v.x + y*v.y + z*v.z
 infix fun Vector3d.cross(v: Vector3d): Vector3d {
     val i = y*v.z - z*v.y
@@ -74,7 +79,7 @@ fun Vector3d.lerp(v: Vector3d, a: Double): Vector3d {
 operator fun Double.times(v: Vector3d) = v.copy().also { it.scale(this) }
 
 
-// Pooled operations
+// Unused Pooled operations
 
 //class MathPooler {
 //    val ptPooler = Pooler(pointPool)

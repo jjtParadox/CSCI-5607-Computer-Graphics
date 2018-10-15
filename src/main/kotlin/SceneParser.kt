@@ -1,0 +1,195 @@
+import java.io.File
+import java.lang.Exception
+import javax.vecmath.Point3d
+import javax.vecmath.Vector3d
+import kotlin.reflect.KMutableProperty0
+
+fun parseSceneFile(file: File): Scene {
+    val reader = file.bufferedReader()
+
+    val blueprint = SceneFileBlueprint()
+    var currentMaterial = SceneFileMaterial()
+
+    reader.forEachLine {
+        val params = it.split(' ').filter { i -> i.isNotBlank() }
+        val get = { i: Int -> params[i].toDouble() }
+        try {
+            if (params.isNotEmpty()) when (params[0]) {
+                "camera" -> blueprint.camera.apply {
+                    px = get(1)
+                    py = get(2)
+                    pz = get(3)
+
+                    dx = get(4)
+                    dy = get(5)
+                    dz = get(6)
+
+                    ux = get(7)
+                    uy = get(8)
+                    uz = get(9)
+
+                    ha = get(10)
+                }
+                "film_resolution" -> blueprint.camera.apply {
+                    w = params[1].toInt()
+                    h = params[2].toInt()
+                }
+                "output_image" -> blueprint.camera.apply {
+                    filename = params[1]
+                }
+                "sphere" -> blueprint.geometry.add(SceneFileSphere().apply {
+                    x = get(1)
+                    y = get(2)
+                    z = get(3)
+                    r = get(4)
+
+                    material = currentMaterial
+                })
+                "background" -> blueprint.background.apply {
+                    toProps(::r, ::g, ::b) { i -> params[i + 1].toDouble() }
+                }
+                "material" -> currentMaterial = SceneFileMaterial().apply {
+                    toProps(::ar, ::ag, ::ab, ::dr, ::dg, ::db, ::sr, ::sg, ::sb, ::ns, ::tr, ::tg, ::tb, ::ior) { i -> params[i + 1].toDouble() }
+                }
+                "directional_light" -> blueprint.lights.add(SceneFileDirLight().apply {
+                    toProps(::r, ::g, ::b, ::x, ::y, ::z) { i -> params[i + 1].toDouble() }
+                })
+                "point_light" -> blueprint.lights.add(SceneFilePointLight().apply {
+                    toProps(::r, ::g, ::b, ::x, ::y, ::z) { i -> params[i + 1].toDouble() }
+                })
+                "spot_light" -> blueprint.lights.add(SceneFileSpotLight().apply {
+                    toProps(::r, ::g, ::b, ::px, ::py, ::pz, ::dx, ::dy, ::dz, ::angle1, ::angle2) { i -> params[i + 1].toDouble() }
+                })
+                "ambient_light" -> blueprint.ambientLight.apply {
+                    toProps(::r, ::g, ::b) { i -> params[i + 1].toDouble() }
+                }
+                "max_depth" -> blueprint.maxDepth = params[1].toInt()
+            }
+        } catch (e: Exception) {
+            System.err.println("Unable to parse line $it")
+            throw e
+        }
+    }
+    return blueprint.toScene()
+}
+
+private fun <T> toProps(vararg props: KMutableProperty0<T>?, getter: (Int) -> T) {
+    props.forEachIndexed { index, prop ->
+        prop?.set(getter(index))
+    }
+}
+
+class SceneFileBlueprint {
+    var camera = SceneFileCamera()
+    var geometry = mutableListOf<SceneFileShape>()
+    var background = SceneFileBackground()
+    var lights = mutableListOf<SceneFileLight>()
+    var ambientLight = SceneFileAmbientLight()
+    var maxDepth = 5
+
+    fun toScene(): Scene {
+        val trueCamera = camera.run { Camera(Point3d(px, py, pz), Vector3d(dx, dy, dz), Vector3d(ux, uy, uz), Math.toRadians(ha), w.toDouble(), h.toDouble()) }
+        val trueGeometry = geometry.asSequence().filterIsInstance<SceneFileSphere>().map {
+            it.run {
+                Sphere(Point3d(x, y, z), r, material.run {
+                    Material(RayColor(ar, ag, ab), RayColor(dr, dg, db), RayColor(sr, sg, sb), ns, RayColor(tr, tg, tb), ior)
+                })
+            }
+        }.toList()
+        val trueBackground = background.run { RayColor(r, g, b) }
+        val trueLights = if (lights.isNotEmpty()) lights.asSequence().filterIsInstance<SceneFilePointLight>().first().run { Point3d(x, y, z) } else null
+        val trueAmbient = ambientLight.run { RayColor(r, g, b) }
+        return Scene(trueCamera, trueGeometry, trueBackground, trueLights, trueAmbient)
+    }
+}
+
+class SceneFileCamera {
+    var px = 0.0
+    var py = 0.0
+    var pz = 0.0
+
+    var dx = 0.0
+    var dy = 0.0
+    var dz = 1.0
+
+    var ux = 0.0
+    var uy = 1.0
+    var uz = 0.0
+
+    var ha = 45.0
+
+    var w = 640
+    var h = 480
+
+    var filename = "raytraced.bmp"
+}
+
+open class SceneFileShape {
+    var material = SceneFileMaterial()
+}
+
+class SceneFileSphere : SceneFileShape() {
+    var x = 0.0
+    var y = 0.0
+    var z = 0.0
+    var r = 1.0
+}
+
+class SceneFileBackground {
+    var r = 0.0
+    var g = 0.0
+    var b = 0.0
+}
+
+class SceneFileMaterial {
+    var ar = 0.0
+    var ag = 0.0
+    var ab = 0.0
+
+    var dr = 1.0
+    var dg = 1.0
+    var db = 1.0
+
+    var sr = 0.0
+    var sg = 0.0
+    var sb = 0.0
+    var ns = 5.0
+
+    var tr = 0.0
+    var tg = 0.0
+    var tb = 0.0
+    var ior = 1.0
+}
+
+open class SceneFileLight {
+    var r = 0.0
+    var g = 0.0
+    var b = 0.0
+}
+
+class SceneFileDirLight : SceneFileLight() {
+    var x = 0.0
+    var y = 0.0
+    var z = 0.0
+}
+
+class SceneFilePointLight : SceneFileLight() {
+    var x = 0.0
+    var y = 0.0
+    var z = 0.0
+}
+
+class SceneFileSpotLight : SceneFileLight() {
+    var px = 0.0
+    var py = 0.0
+    var pz = 0.0
+
+    var dx = 0.0
+    var dy = 0.0
+    var dz = 0.0
+
+    var angle1 = 0.0
+    var angle2 = 0.0
+}
+
+class SceneFileAmbientLight : SceneFileLight()

@@ -11,6 +11,9 @@ fun main(vararg args: String?) {
     val sceneFile = if (args.isNotEmpty()) args[0] else null
     if (!sceneFile.isNullOrBlank()) {
         rayScene = parseSceneFile(File(sceneFile)) // in SceneParser.kt
+    } else {
+        println("Error: scene file not given. Exiting.")
+        return
     }
 
     launch<RayApp>()

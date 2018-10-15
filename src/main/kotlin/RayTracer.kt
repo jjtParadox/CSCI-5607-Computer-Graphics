@@ -85,7 +85,7 @@ data class Camera(val pos: Point3d, val towards: Vector3d, val up: Vector3d, val
 
 data class Ray(val pos: Point3d, val vec: Vector3d)
 
-class Material(var ambient: RayColor, var diffuse: RayColor, var specular: RayColor, var phongExp: Double, var trans: RayColor, var refraction: Double)
+data class Material(var ambient: RayColor, var diffuse: RayColor, var specular: RayColor, var phongExp: Double, var trans: RayColor, var refraction: Double)
 
 interface RayIntersector {
     fun intersect(ray: Ray): Point3d?

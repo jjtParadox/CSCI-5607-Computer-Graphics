@@ -14,8 +14,6 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.30.2'
     compile 'no.tornado:tornadofx:1.7.17'
-//    compile 'org.apache.commons:commons-pool2:2.6.0'
-    compile 'javax.vecmath:vecmath:1.5.2'
 }
 
 compileKotlin {

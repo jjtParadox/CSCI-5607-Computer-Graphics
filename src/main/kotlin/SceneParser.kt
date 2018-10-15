@@ -1,7 +1,5 @@
 import java.io.File
 import java.lang.Exception
-import javax.vecmath.Point3d
-import javax.vecmath.Vector3d
 import kotlin.reflect.KMutableProperty0
 
 fun parseSceneFile(file: File): Scene {

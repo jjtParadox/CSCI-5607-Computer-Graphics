@@ -1,10 +1,6 @@
 import javafx.scene.image.Image
 import javafx.scene.image.WritableImage
-import javafx.scene.paint.Color
 import java.util.*
-import javax.vecmath.Point3d
-import javax.vecmath.Tuple3d
-import javax.vecmath.Vector3d
 import kotlin.collections.LinkedHashMap
 import kotlin.math.*
 import kotlin.system.measureTimeMillis
@@ -13,8 +9,8 @@ fun createRaycast(w: Int, h: Int): Image {
     val camera = Camera(Point3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0), 0.2, w.toDouble(), h.toDouble())
 //    val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, RayColor(200.0, 100.0, 100.0))
 //    val smallSphere = Sphere(Point3d(77.0, 30.0, -7.0), 5.0, RayColor(100.0, 100.0, 200.0), diffuse = 0.5, spec = 1.0)
-    val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, Material(RayColor(200.0, 100.0, 100.0) / 255.0, RayColor(255.0, 2550.0, 255.0) / 255.0, RayColor(255.0, 255.0, 255.0) / 255.0*3.0, 30.0, RayColor(0.0, 0.0, 0.0) / 255.0, 0.0))
-    val scene = Scene(camera, listOf(sphere), RayColor(40.0, 40.0, 40.0) / 255.0, Point3d(90.0, 300000.0, 0.0), RayColor(255.0, 255.0, 255.0) / 255.0 * 0.15)
+    val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, Material(RayColor(200.0, 100.0, 100.0) / 255.0, RayColor(1.0, 1.0, 1.0), RayColor(1.0, 1.0, 1.0) * 3.0, 30.0, RayColor(0.0, 0.0, 0.0), 0.0))
+    val scene = Scene(camera, listOf(sphere), RayColor(40.0, 40.0, 40.0) / 255.0, Point3d(90.0, 300000.0, 0.0), RayColor(1.0, 1.0, 1.0) * 0.15)
     return createRaycast(scene)
 }
 
@@ -79,30 +75,6 @@ data class Camera(val pos: Point3d, val towards: Vector3d, val up: Vector3d, val
 
 data class Ray(val pos: Point3d, val vec: Vector3d)
 
-class RayColor : Tuple3d {
-    constructor(r: Double, g: Double, b: Double) : super(r, g, b)
-    constructor(t: Tuple3d) : super(t)
-
-    operator fun plus(rayColor: RayColor) = RayColor(this).apply { this.add(rayColor) }
-    operator fun minus(rayColor: RayColor) = RayColor(this).apply { this.sub(rayColor) }
-    operator fun times(rayColor: RayColor) = RayColor(this).apply {
-        this.x *= rayColor.x
-        this.y *= rayColor.y
-        this.z *= rayColor.z
-    }
-    operator fun times(d: Double) = RayColor(this).apply { this.scale(d) }
-    operator fun div(d: Double) = RayColor(this).apply { this.scale(1.0/d) }
-    fun lerp(rayColor: RayColor, alpha: Double) = RayColor(this).apply { this.interpolate(rayColor, alpha) }
-
-//    fun toColor(): Color {
-//        return Color(x.coerceIn(0.0, 255.0)/255.0,
-//                y.coerceIn(0.0, 255.0)/255.0,
-//                z.coerceIn(0.0, 255.0)/255.0,
-//                1.0)
-//    }
-    fun toColor() = Color(x.coerceIn(0.0, 1.0), y.coerceIn(0.0, 1.0), z.coerceIn(0.0, 1.0), 1.0)
-}
-
 class Material(var ambient: RayColor, var diffuse: RayColor, var specular: RayColor, var phongExp: Double, var trans: RayColor, var refraction: Double)
 
 interface RayIntersector {
@@ -119,9 +91,9 @@ interface RayIntersector {
 //data class Sphere(var pos: Point3d, var r: Double, var color: RayColor, var diffuse: Double = 1.0, var spec: Double = 3.0, var phong: Double = 30.0) : RayIntersector {
 data class Sphere(var pos: Point3d, var r: Double, var material: Material) : RayIntersector {
     override fun intersect(ray: Ray): Point3d? {
-        val a = ray.vec.lengthSquared()
+        val a = ray.vec.lengthSquared
         val b = 2.0*ray.vec dot (ray.pos - pos)
-        val c = (ray.pos - pos).lengthSquared() - r*r
+        val c = (ray.pos - pos).lengthSquared - r*r
 
         val t1 = (-b + sqrt(b*b - 4*a*c))/(2*a)
         val t2 = (-b - sqrt(b*b - 4*a*c))/(2*a)

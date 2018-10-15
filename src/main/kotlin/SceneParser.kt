@@ -87,15 +87,25 @@ class SceneFileBlueprint {
 
     fun toScene(): Scene {
         val trueCamera = camera.run { Camera(Point3d(px, py, pz), Vector3d(dx, dy, dz), Vector3d(ux, uy, uz), Math.toRadians(ha), w.toDouble(), h.toDouble()) }
-        val trueGeometry = geometry.asSequence().filterIsInstance<SceneFileSphere>().map {
+        val trueGeometry = geometry.map {
             it.run {
-                Sphere(Point3d(x, y, z), r, material.run {
-                    Material(RayColor(ar, ag, ab), RayColor(dr, dg, db), RayColor(sr, sg, sb), ns, RayColor(tr, tg, tb), ior)
-                })
+                when (this) {
+                    is SceneFileSphere -> Sphere(Point3d(x, y, z), r, material.run {
+                        Material(RayColor(ar, ag, ab), RayColor(dr, dg, db), RayColor(sr, sg, sb), ns, RayColor(tr, tg, tb), ior)
+                    })
+                    else -> TODO("Not implemented")
+                }
             }
-        }.toList()
+        }
         val trueBackground = background.run { RayColor(r, g, b) }
-        val trueLights = if (lights.isNotEmpty()) lights.asSequence().filterIsInstance<SceneFilePointLight>().first().run { Point3d(x, y, z) } else null
+        val trueLights = lights.map {
+            it.run {
+                when (this) {
+                    is SceneFilePointLight -> PointLight(Point3d(x, y, z), RayColor(r, g, b))
+                    else -> TODO("Not implemented")
+                }
+            }
+        }
         val trueAmbient = ambientLight.run { RayColor(r, g, b) }
         return Scene(trueCamera, trueGeometry, trueBackground, trueLights, trueAmbient)
     }

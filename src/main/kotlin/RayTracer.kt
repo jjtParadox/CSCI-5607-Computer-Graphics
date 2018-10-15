@@ -10,7 +10,7 @@ fun createRaycast(w: Int, h: Int): Image {
 //    val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, RayColor(200.0, 100.0, 100.0))
 //    val smallSphere = Sphere(Point3d(77.0, 30.0, -7.0), 5.0, RayColor(100.0, 100.0, 200.0), diffuse = 0.5, spec = 1.0)
     val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, Material(RayColor(200.0, 100.0, 100.0) / 255.0, RayColor(1.0, 1.0, 1.0), RayColor(1.0, 1.0, 1.0) * 3.0, 30.0, RayColor(0.0, 0.0, 0.0), 0.0))
-    val scene = Scene(camera, listOf(sphere), RayColor(40.0, 40.0, 40.0) / 255.0, Point3d(90.0, 300000.0, 0.0), RayColor(1.0, 1.0, 1.0) * 0.15)
+    val scene = Scene(camera, listOf(sphere), RayColor(40.0, 40.0, 40.0) / 255.0, listOf(PointLight(Point3d(90.0, 300000.0, 0.0))), RayColor(1.0, 1.0, 1.0) * 0.15)
     return createRaycast(scene)
 }
 
@@ -118,7 +118,11 @@ data class Sphere(var pos: Point3d, var r: Double, var material: Material) : Ray
     }
 }
 
-class Scene(val camera: Camera, val objects: List<RayIntersector>, val background: RayColor = RayColor(0.0, 0.0, 0.0), val lightPos: Point3d?, val ambient: RayColor) {
+abstract class Light
+
+data class PointLight(val pos: Point3d, val color: RayColor = RayColor(1.0, 1.0, 1.0)) : Light()
+
+class Scene(val camera: Camera, val objects: List<RayIntersector>, val background: RayColor = RayColor(0.0, 0.0, 0.0), val lights: List<PointLight>, val ambient: RayColor) {
     fun constructRay(i: Double, j: Double) = camera.constructRay(i, j)
 
     fun findIntersectionColor(ray: Ray): RayColor {
@@ -138,18 +142,22 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
     }
 
     fun lightingAt(point: Point3d, obj: RayIntersector): RayColor {
-        if (lightPos == null) return ambient
-        val lightVec = (lightPos - point).apply { this.normalize() }
-        val normal = obj.normalAt(point)
-        if (lightVec dot normal < 0) return ambient
+        if (lights.isEmpty()) return ambient
+        return lights.fold(RayColor(0.0, 0.0, 0.0)) { acc, light ->
+            val lightVec = (light.pos - point).apply { this.normalize() }
+            val normal = obj.normalAt(point)
+            if (lightVec dot normal < 0)
+                return acc
 
-        val shadowRay = Ray(point + 1e-10*normal, lightVec)
-        if (findIntersections(shadowRay).isNotEmpty()) return ambient
+            val shadowRay = Ray(point + 1e-10 * normal, lightVec)
+            if (findIntersections(shadowRay).isNotEmpty())
+                return acc
 
-        val lightRefl = lightVec - 2 * (lightVec dot normal) * normal
-        lightRefl.negate()
-        val viewVec = (camera.pos - point).apply { this.normalize() }
-        val lighting = obj.specAt(point) * (viewVec dot lightRefl).pow(obj.phongExpAt(point)) + obj.diffuseAt(point) * (lightVec dot normal)
-        return lighting + ambient
+            val lightRefl = lightVec - 2 * (lightVec dot normal) * normal
+            lightRefl.negate()
+            val viewVec = (camera.pos - point).apply { this.normalize() }
+            val lighting = obj.specAt(point) * (viewVec dot lightRefl).pow(obj.phongExpAt(point)) + obj.diffuseAt(point) * (lightVec dot normal)
+            return acc + lighting
+        } + ambient
     }
 }

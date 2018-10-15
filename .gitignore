@@ -1,0 +1,9 @@
+.gradle
+gradle
+.idea
+out
+
+.directory
+*.png
+
+SphereExamples

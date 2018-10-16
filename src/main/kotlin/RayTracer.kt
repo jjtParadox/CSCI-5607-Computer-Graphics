@@ -163,7 +163,7 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
                 return@fold acc // If dot is negative, don't change the running sum (return acc to the fold lambda unchanged)
 
             val shadowRay = Ray(point + 1e-10 * normal, lightVec)
-            if (findIntersections(shadowRay).isNotEmpty())
+            if (findIntersections(shadowRay).any { it.value.distanceSquared(light.pos) <= lightDist })
                 return@fold acc // If point is in shadow, don't change the running sum
 
             val lightRefl = lightVec - 2 * (lightVec dot normal) * normal

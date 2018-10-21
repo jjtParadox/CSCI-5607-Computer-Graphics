@@ -42,7 +42,7 @@ fun createRaycast(scene: Scene): Image {
                 }
                 // Set pixel position (x, y) to the average of the 9 samples
                 // fold {} takes an initial value and a lambda operation to do on each element of the list
-                // Here, it's starting at black and adding 1/9th of each sample to that black ("acc" is the in-progres sum)
+                // Here, it's starting at black and adding 1/9th of each sample to that black ("acc" is the in-progress sum)
                 px.setColor(x, y, samples.fold(RayColor(0.0, 0.0, 0.0)) { acc, color -> acc + color/9.0 }.toColor())
             }
         }
@@ -101,7 +101,7 @@ interface RayIntersector {
 data class Sphere(var pos: Point3d, var r: Double, var material: Material) : RayIntersector {
     override fun intersect(ray: Ray): Point3d? {
         val a = ray.vec.lengthSquared
-        val b = 2.0*ray.vec dot (ray.pos - pos)
+        val b = 2.0*ray.vec dot (ray.pos - pos) // Infix function defined in Math.kt
         val c = (ray.pos - pos).lengthSquared - r*r
 
         val t1 = (-b + sqrt(b*b - 4*a*c))/(2*a)
@@ -146,7 +146,7 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
     fun findIntersections(ray: Ray): Map<RayIntersector, Point3d> {
         val collisions = LinkedHashMap<RayIntersector, Point3d>()
         for (obj in objects) {
-            val point = obj.intersect(ray) ?: continue
+            val point = obj.intersect(ray) ?: continue // If obj.intersect(ray) returns null, continue to the next obj
             collisions[obj] = point
         }
         return collisions

@@ -76,7 +76,7 @@ fun Vector3d.lerp(v: Vector3d, a: Double): Vector3d {
 }
 
 
-operator fun Double.times(v: Vector3d) = v.copy().also { it.scale(this) }
+operator fun Double.times(v: Vector3d) = v.copy().also { it.scale(this) } // Make a copy of the vector and also scale it by the number ('this')
 
 
 // Unused Pooled operations

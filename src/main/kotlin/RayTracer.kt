@@ -11,7 +11,7 @@ fun createRaycast(w: Int, h: Int): Image {
 //    val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, RayColor(200.0, 100.0, 100.0))
 //    val smallSphere = Sphere(Point3d(77.0, 30.0, -7.0), 5.0, RayColor(100.0, 100.0, 200.0), diffuse = 0.5, spec = 1.0)
     val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, Material(RayColor(200.0, 100.0, 100.0) / 255.0, RayColor(1.0, 1.0, 1.0), RayColor(1.0, 1.0, 1.0) * 3.0, 30.0, RayColor(0.0, 0.0, 0.0), 0.0))
-    val scene = Scene(camera, arrayOf(), listOf(sphere), RayColor(40.0, 40.0, 40.0) / 255.0, listOf(PointLight(Point3d(90.0, 300000.0, 0.0))), RayColor(1.0, 1.0, 1.0) * 0.15, 0)
+    val scene = Scene(camera, listOf(sphere), RayColor(40.0, 40.0, 40.0) / 255.0, listOf(PointLight(Point3d(90.0, 300000.0, 0.0))), RayColor(1.0, 1.0, 1.0) * 0.15, 0)
     return createRaycast(scene)
 }
 
@@ -138,6 +138,37 @@ data class Sphere(var pos: Point3d, var r: Double, override var material: Materi
     }
 }
 
+data class Triangle(val p1: Point3d, val p2: Point3d, val p3: Point3d, override var material: Material) : RayIntersector {
+    val vecA = p2 - p1
+    val vecB = p3 - p1
+    val normal = vecA cross vecB
+    override fun intersect(ray: Ray): Point3d? {
+        val t = abs(((p1 - ray.pos) dot normal) / (normal dot ray.vec))
+        if (t.isNaN())
+            return null
+        val pos = ray.pos + t * ray.vec
+        val vec = pos - p1
+        var a = (vecB cross vec) dot (vecB cross vecA)
+        var b = (vecA cross vec) dot (vecA cross vecB)
+        if (a < 0 || b < 0)
+            return null
+        val denom = (vecA cross vecB).length
+        a = (vecB cross vec).length / denom
+        b = (vecA cross vec).length / denom
+        if (a + b > 1)
+            return null
+        return pos
+    }
+
+    override fun normalAt(point: Point3d) = normal
+
+    override fun ambientAt(point: Point3d) = material.ambient
+    override fun diffuseAt(point: Point3d) = material.diffuse
+    override fun specAt(point: Point3d) = material.specular
+    override fun transAt(point: Point3d) = material.trans
+    override fun phongExpAt(point: Point3d) = material.phongExp
+}
+
 abstract class Light {
     abstract val color: RayColor
     abstract fun vectorTo(pos: Point3d): Vector3d
@@ -156,7 +187,7 @@ data class SpotLight(override val pos: Point3d, val dir: Vector3d, val innerAngl
     }
 }
 
-class Scene(val camera: Camera, val vertices: Array<Vector3d>, val objects: List<RayIntersector>, val background: RayColor = RayColor(0.0, 0.0, 0.0), val lights: List<Light>, val ambient: RayColor, val maxDepth: Int) {
+class Scene(val camera: Camera, val objects: List<RayIntersector>, val background: RayColor = RayColor(0.0, 0.0, 0.0), val lights: List<Light>, val ambient: RayColor, val maxDepth: Int) {
     fun constructRay(i: Double, j: Double) = camera.constructRay(i, j)
 
     fun findIntersectionColor(ray: Ray): RayColor {

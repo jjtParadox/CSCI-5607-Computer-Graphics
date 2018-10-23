@@ -74,8 +74,8 @@ fun parseSceneFile(file: File): Scene {
                         toProps(::r, ::g, ::b) { i -> params[i + 1].toDouble() }
                     }
                     "max_depth" -> blueprint.maxDepth = params[1].toInt()
-                    "max_vertices" -> blueprint.vertices = Array(params[1].toInt()) { _ -> Vector3d(0.0, 0.0, 0.0) }
-                    "vertex" -> blueprint.vertices[vertexIndex++] = Vector3d(get(1), get(2), get(3))
+                    "max_vertices" -> blueprint.vertices = Array(params[1].toInt()) { _ -> Point3d(0.0, 0.0, 0.0) }
+                    "vertex" -> blueprint.vertices[vertexIndex++] = Point3d(get(1), get(2), get(3))
                     "triangle" -> blueprint.geometry.add(SceneFileTriangle().apply {
                         toProps(::v1, ::v2, ::v3) { i -> params[i+1].toInt() }
                         material = currentMaterial
@@ -106,7 +106,7 @@ class SceneFileBlueprint {
     var lights = mutableListOf<SceneFileLight>()
     var ambientLight = SceneFileAmbientLight()
     var maxDepth = 5
-    lateinit var vertices: Array<Vector3d>
+    lateinit var vertices: Array<Point3d>
 
     // Convert data storage object to true Scene
     fun toScene(): Scene {
@@ -119,7 +119,7 @@ class SceneFileBlueprint {
             it.run {
                 when (this) {
                     is SceneFileSphere -> Sphere(Point3d(x, y, z), r, trueMaterial)
-                    is SceneFileTriangle -> Triangle(v1, v2, v3, trueMaterial)
+                    is SceneFileTriangle -> Triangle(vertices[v1], vertices[v2], vertices[v3], trueMaterial)
                     // Other geometry is not implemented, so throw an error
                     else -> TODO(it.toString())
                 }
@@ -136,8 +136,7 @@ class SceneFileBlueprint {
             }
         }
         val trueAmbient = ambientLight.run { RayColor(r, g, b) }
-        val trueVertices = if (::vertices.isInitialized) vertices else arrayOf()
-        return Scene(trueCamera, trueVertices, trueGeometry, trueBackground, trueLights, trueAmbient, maxDepth)
+        return Scene(trueCamera, trueGeometry, trueBackground, trueLights, trueAmbient, maxDepth)
     }
 }
 

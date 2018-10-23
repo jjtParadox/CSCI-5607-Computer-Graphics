@@ -10,6 +10,7 @@ fun parseSceneFile(file: File): Scene {
     val blueprint = SceneFileBlueprint()
     // Each geometry gets the material defined earlier in the file, so store that material here
     var currentMaterial = SceneFileMaterial()
+    var vertexIndex = 0
 
     reader.forEachLine {
         // Split line on spaces
@@ -73,6 +74,12 @@ fun parseSceneFile(file: File): Scene {
                         toProps(::r, ::g, ::b) { i -> params[i + 1].toDouble() }
                     }
                     "max_depth" -> blueprint.maxDepth = params[1].toInt()
+                    "max_vertices" -> blueprint.vertices = Array(params[1].toInt()) { _ -> Vector3d(0.0, 0.0, 0.0) }
+                    "vertex" -> blueprint.vertices[vertexIndex++] = Vector3d(get(1), get(2), get(3))
+                    "triangle" -> blueprint.geometry.add(SceneFileTriangle().apply {
+                        toProps(::v1, ::v2, ::v3) { i -> params[i+1].toInt() }
+                        material = currentMaterial
+                    })
 
                     else -> if (!it.startsWith("#")) error("Line '$it' not recognized")
                 }
@@ -99,17 +106,20 @@ class SceneFileBlueprint {
     var lights = mutableListOf<SceneFileLight>()
     var ambientLight = SceneFileAmbientLight()
     var maxDepth = 5
+    lateinit var vertices: Array<Vector3d>
 
     // Convert data storage object to true Scene
     fun toScene(): Scene {
         // run {} allows camera's fields to be referenced without doing camera.px, camera.py, etc
         val trueCamera = camera.run { Camera(Point3d(px, py, pz), Vector3d(dx, dy, dz), Vector3d(ux, uy, uz), Math.toRadians(ha), w.toDouble(), h.toDouble()) }
         val trueGeometry = geometry.map {
+            val trueMaterial = it.material.run {
+                Material(RayColor(ar, ag, ab), RayColor(dr, dg, db), RayColor(sr, sg, sb), ns, RayColor(tr, tg, tb), ior)
+            }
             it.run {
                 when (this) {
-                    is SceneFileSphere -> Sphere(Point3d(x, y, z), r, material.run {
-                        Material(RayColor(ar, ag, ab), RayColor(dr, dg, db), RayColor(sr, sg, sb), ns, RayColor(tr, tg, tb), ior)
-                    })
+                    is SceneFileSphere -> Sphere(Point3d(x, y, z), r, trueMaterial)
+                    is SceneFileTriangle -> Triangle(v1, v2, v3, trueMaterial)
                     // Other geometry is not implemented, so throw an error
                     else -> TODO(it.toString())
                 }
@@ -126,7 +136,8 @@ class SceneFileBlueprint {
             }
         }
         val trueAmbient = ambientLight.run { RayColor(r, g, b) }
-        return Scene(trueCamera, trueGeometry, trueBackground, trueLights, trueAmbient)
+        val trueVertices = if (::vertices.isInitialized) vertices else arrayOf()
+        return Scene(trueCamera, trueVertices, trueGeometry, trueBackground, trueLights, trueAmbient, maxDepth)
     }
 }
 
@@ -162,6 +173,12 @@ class SceneFileSphere : SceneFileShape() {
     var y = 0.0
     var z = 0.0
     var r = 1.0
+}
+
+class SceneFileTriangle : SceneFileShape() {
+    var v1 = 0
+    var v2 = 0
+    var v3 = 0
 }
 
 class SceneFileBackground {

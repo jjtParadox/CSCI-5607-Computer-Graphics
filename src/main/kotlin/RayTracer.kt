@@ -11,7 +11,7 @@ fun createRaycast(w: Int, h: Int): Image {
 //    val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, RayColor(200.0, 100.0, 100.0))
 //    val smallSphere = Sphere(Point3d(77.0, 30.0, -7.0), 5.0, RayColor(100.0, 100.0, 200.0), diffuse = 0.5, spec = 1.0)
     val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, Material(RayColor(200.0, 100.0, 100.0) / 255.0, RayColor(1.0, 1.0, 1.0), RayColor(1.0, 1.0, 1.0) * 3.0, 30.0, RayColor(0.0, 0.0, 0.0), 0.0))
-    val scene = Scene(camera, listOf(sphere), RayColor(40.0, 40.0, 40.0) / 255.0, listOf(PointLight(Point3d(90.0, 300000.0, 0.0))), RayColor(1.0, 1.0, 1.0) * 0.15)
+    val scene = Scene(camera, arrayOf(), listOf(sphere), RayColor(40.0, 40.0, 40.0) / 255.0, listOf(PointLight(Point3d(90.0, 300000.0, 0.0))), RayColor(1.0, 1.0, 1.0) * 0.15, 0)
     return createRaycast(scene)
 }
 
@@ -83,22 +83,25 @@ data class Camera(val pos: Point3d, val towards: Vector3d, val up: Vector3d, val
     }
 }
 
-data class Ray(val pos: Point3d, val vec: Vector3d)
+data class Ray(val pos: Point3d, val vec: Vector3d, val depth: Int = 0)
 
 data class Material(var ambient: RayColor, var diffuse: RayColor, var specular: RayColor, var phongExp: Double, var trans: RayColor, var refraction: Double)
 
 interface RayIntersector {
+    var material: Material
+
     fun intersect(ray: Ray): Point3d?
 
     fun ambientAt(point: Point3d): RayColor
     fun diffuseAt(point: Point3d): RayColor
     fun specAt(point: Point3d): RayColor
+    fun transAt(point: Point3d): RayColor
     fun phongExpAt(point: Point3d): Double
 
     fun normalAt(point: Point3d): Vector3d
 }
 
-data class Sphere(var pos: Point3d, var r: Double, var material: Material) : RayIntersector {
+data class Sphere(var pos: Point3d, var r: Double, override var material: Material) : RayIntersector {
     override fun intersect(ray: Ray): Point3d? {
         val a = ray.vec.lengthSquared
         val b = 2.0*ray.vec dot (ray.pos - pos) // Infix function defined in Math.kt
@@ -111,12 +114,19 @@ data class Sphere(var pos: Point3d, var r: Double, var material: Material) : Ray
 
         val p1 = ray.pos + t1 * ray.vec
         val p2 = ray.pos + t2 * ray.vec
-        return if (p1.distanceSquared(ray.pos) < p2.distanceSquared(ray.pos)) p1 else p2
+        return when {
+            t1 < 0 -> p2
+            t2 < 0 -> p1
+
+            p1.distanceSquared(ray.pos) < p2.distanceSquared(ray.pos) -> p1
+            else -> p2
+        }
     }
 
     override fun ambientAt(point: Point3d) = material.ambient
     override fun diffuseAt(point: Point3d) = material.diffuse
     override fun specAt(point: Point3d) = material.specular
+    override fun transAt(point: Point3d) = material.trans
     override fun phongExpAt(point: Point3d) = material.phongExp
 
     override fun normalAt(point: Point3d) = (point - pos).apply { this.normalize() }
@@ -146,15 +156,47 @@ data class SpotLight(override val pos: Point3d, val dir: Vector3d, val innerAngl
     }
 }
 
-class Scene(val camera: Camera, val objects: List<RayIntersector>, val background: RayColor = RayColor(0.0, 0.0, 0.0), val lights: List<Light>, val ambient: RayColor) {
+class Scene(val camera: Camera, val vertices: Array<Vector3d>, val objects: List<RayIntersector>, val background: RayColor = RayColor(0.0, 0.0, 0.0), val lights: List<Light>, val ambient: RayColor, val maxDepth: Int) {
     fun constructRay(i: Double, j: Double) = camera.constructRay(i, j)
 
     fun findIntersectionColor(ray: Ray): RayColor {
         // Create map of objects to collision points
         val collisions = findIntersections(ray)
         // Get the object and collision point that is closest to the camera. If collisions is empty (collisions.minBy() returns null), return background color
-        val (obj, point) = collisions.minBy { it.value.distanceSquared(camera.pos) } ?: return background
-        return lightingAt(point, obj)
+        val (obj, point) = collisions.minBy { it.value.distanceSquared(ray.pos) } ?: return background
+
+        // Get reflected and refracted colors if we have reflections left
+        var bounce = RayColor(0.0, 0.0, 0.0)
+        if (ray.depth < maxDepth) {
+            val normal = obj.normalAt(point)
+            val rayDot = ray.vec dot normal
+
+            // Calculate reflection vector and get intersection
+            var reflection = obj.specAt(point)
+            if (reflection != RayColor(0.0, 0.0, 0.0)) {
+                val reflVec = ray.vec - 2 * rayDot * normal
+                reflection = findIntersectionColor(Ray(point + 1e-10 * normal, reflVec, ray.depth + 1)) * reflection
+            }
+
+            // Calculate refraction vector
+            var refraction = obj.transAt(point)
+            if (refraction != RayColor(0.0, 0.0, 0.0)) {
+                val refractionAmnt: Double
+                val refractionPoint: Point3d
+                if (rayDot < 0) {
+                    refractionPoint = point - 1e-10 * normal
+                    refractionAmnt = 1.0 / obj.material.refraction
+                } else {
+                    refractionPoint = point + 1e-10 * normal
+                    refractionAmnt = obj.material.refraction
+                }
+                val refracVec = if (refractionAmnt != 1.0) refractionAmnt * ray.vec + (-refractionAmnt * rayDot - sqrt(1 - refractionAmnt.pow(2) * (1 - rayDot.pow(2)))) * normal else ray.vec.copy()
+                refraction = findIntersectionColor(Ray(refractionPoint, refracVec, ray.depth + 1)) * refraction
+            }
+
+            bounce = reflection + refraction
+        }
+        return lightingAt(point, obj) + bounce
     }
 
     fun findIntersections(ray: Ray): Map<RayIntersector, Point3d> {

@@ -17,6 +17,8 @@ dependencies {
     compile 'no.tornado:tornadofx:1.7.17'
 }
 
+build.dependsOn shadowJar
+
 compileKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }

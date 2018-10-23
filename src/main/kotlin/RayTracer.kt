@@ -128,11 +128,25 @@ data class Sphere(var pos: Point3d, var r: Double, var material: Material) : Ray
     }
 }
 
-abstract class Light
+abstract class Light {
+    abstract val color: RayColor
+    abstract fun vectorTo(pos: Point3d): Vector3d
+}
 
-data class PointLight(val pos: Point3d, val color: RayColor = RayColor(1.0, 1.0, 1.0)) : Light()
+abstract class PosLight : Light() {
+    abstract val pos: Point3d
+    override fun vectorTo(pos: Point3d) = (this.pos - pos)
+}
 
-class Scene(val camera: Camera, val objects: List<RayIntersector>, val background: RayColor = RayColor(0.0, 0.0, 0.0), val lights: List<PointLight>, val ambient: RayColor) {
+data class PointLight(override val pos: Point3d, override val color: RayColor = RayColor(1.0, 1.0, 1.0)) : PosLight()
+
+data class SpotLight(override val pos: Point3d, val dir: Vector3d, val innerAngle: Double, val outerAngle: Double, override val color: RayColor) : PosLight() {
+    init {
+        dir.normalize()
+    }
+}
+
+class Scene(val camera: Camera, val objects: List<RayIntersector>, val background: RayColor = RayColor(0.0, 0.0, 0.0), val lights: List<Light>, val ambient: RayColor) {
     fun constructRay(i: Double, j: Double) = camera.constructRay(i, j)
 
     fun findIntersectionColor(ray: Ray): RayColor {
@@ -155,22 +169,41 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
     fun lightingAt(point: Point3d, obj: RayIntersector): RayColor {
         // Sum up the lights
         return lights.fold(RayColor(0.0, 0.0, 0.0)) { acc, light ->
-            val lightVec = (light.pos - point)
+            val lightVec = light.vectorTo(point)
             val lightDist = lightVec.lengthSquared
             lightVec.normalize()
             val normal = obj.normalAt(point)
             if (lightVec dot normal < 0)
                 return@fold acc // If dot is negative, don't change the running sum (return acc to the fold lambda unchanged)
 
-            val shadowRay = Ray(point + 1e-10 * normal, lightVec)
-            if (findIntersections(shadowRay).any { it.value.distanceSquared(light.pos) <= lightDist })
-                return@fold acc // If point is in shadow, don't change the running sum
+            when (light) {
+                is PosLight -> {
+                    val shadowRay = Ray(point + 1e-10 * normal, lightVec)
+                    if (findIntersections(shadowRay).any { it.value.distanceSquared(light.pos) <= lightDist })
+                        return@fold acc // If point is in shadow, don't change the running sum
+                }
+                else -> TODO(light.toString())
+            }
 
             val lightRefl = lightVec - 2 * (lightVec dot normal) * normal
             lightRefl.negate()
             val viewVec = (camera.pos - point).apply { this.normalize() }
-            val lighting = obj.specAt(point) * light.color * 1.0/lightDist * (viewVec dot lightRefl).pow(obj.phongExpAt(point)) + obj.diffuseAt(point)  * light.color * 1.0/lightDist * (lightVec dot normal)
-            return@fold acc + lighting // Add lighting to the running sum
+            val lightMod = when (light) {
+                is PointLight -> 1.0
+                is SpotLight -> {
+                    val inner = cos(light.innerAngle)
+                    val outer = cos(light.outerAngle)
+                    val dot = -(lightVec dot light.dir)
+                    when (dot) {
+                        in inner..1.0 -> 1.0
+                        in outer..inner -> (dot - outer) / inner
+                        else -> 0.0
+                    }
+                }
+                else -> TODO(light.toString())
+            }
+            val lighting = obj.specAt(point) * light.color * 1.0 / lightDist * (viewVec dot lightRefl).pow(obj.phongExpAt(point)) + obj.diffuseAt(point) * light.color * 1.0 / lightDist * (lightVec dot normal)
+            return@fold acc + lighting * lightMod // Add lighting to the running sum
         } + ambient * obj.ambientAt(point) // Add ambient to the sum of lights
     }
 }

@@ -73,6 +73,8 @@ fun parseSceneFile(file: File): Scene {
                         toProps(::r, ::g, ::b) { i -> params[i + 1].toDouble() }
                     }
                     "max_depth" -> blueprint.maxDepth = params[1].toInt()
+
+                    else -> if (!it.startsWith("#")) error("Line '$it' not recognized")
                 }
         } catch (e: Exception) {
             System.err.println("Unable to parse line $it")
@@ -109,7 +111,7 @@ class SceneFileBlueprint {
                         Material(RayColor(ar, ag, ab), RayColor(dr, dg, db), RayColor(sr, sg, sb), ns, RayColor(tr, tg, tb), ior)
                     })
                     // Other geometry is not implemented, so throw an error
-                    else -> TODO("Not implemented")
+                    else -> TODO(it.toString())
                 }
             }
         }
@@ -118,7 +120,8 @@ class SceneFileBlueprint {
             it.run {
                 when (this) {
                     is SceneFilePointLight -> PointLight(Point3d(x, y, z), RayColor(r, g, b))
-                    else -> TODO("Not implemented")
+                    is SceneFileSpotLight -> SpotLight(Point3d(px, py, pz), Vector3d(dx, dy, dz), Math.toRadians(angle1), Math.toRadians(angle2), RayColor(r, g, b))
+                    else -> TODO(it.toString())
                 }
             }
         }

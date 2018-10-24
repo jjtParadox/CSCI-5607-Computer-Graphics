@@ -11,6 +11,7 @@ fun parseSceneFile(file: File): Scene {
     // Each geometry gets the material defined earlier in the file, so store that material here
     var currentMaterial = SceneFileMaterial()
     var vertexIndex = 0
+    var normalIndex = 0
 
     reader.forEachLine {
         // Split line on spaces
@@ -75,9 +76,15 @@ fun parseSceneFile(file: File): Scene {
                     }
                     "max_depth" -> blueprint.maxDepth = params[1].toInt()
                     "max_vertices" -> blueprint.vertices = Array(params[1].toInt()) { _ -> Point3d(0.0, 0.0, 0.0) }
+                    "max_normals" -> blueprint.normals = Array(params[1].toInt()) { _ -> Vector3d(0.0, 0.0, 0.0) }
                     "vertex" -> blueprint.vertices[vertexIndex++] = Point3d(get(1), get(2), get(3))
+                    "normal" -> blueprint.normals[normalIndex++] = Vector3d(get(1), get(2), get(3))
                     "triangle" -> blueprint.geometry.add(SceneFileTriangle().apply {
                         toProps(::v1, ::v2, ::v3) { i -> params[i+1].toInt() }
+                        material = currentMaterial
+                    })
+                    "normal_triangle" -> blueprint.geometry.add(SceneFileNormTriangle().apply {
+                        toProps(::v1, ::v2, ::v3, ::n1, ::n2, ::n3) { i -> params[i+1].toInt() }
                         material = currentMaterial
                     })
 
@@ -107,6 +114,7 @@ class SceneFileBlueprint {
     var ambientLight = SceneFileAmbientLight()
     var maxDepth = 5
     lateinit var vertices: Array<Point3d>
+    lateinit var normals: Array<Vector3d>
 
     // Convert data storage object to true Scene
     fun toScene(): Scene {
@@ -120,7 +128,7 @@ class SceneFileBlueprint {
                 when (this) {
                     is SceneFileSphere -> Sphere(Point3d(x, y, z), r, trueMaterial)
                     is SceneFileTriangle -> Triangle(vertices[v1], vertices[v2], vertices[v3], trueMaterial)
-                    // Other geometry is not implemented, so throw an error
+                    is SceneFileNormTriangle -> NormTriangle(vertices[v1], vertices[v2], vertices[v3], normals[n1], normals[n2], normals[n3], trueMaterial)
                     else -> TODO(it.toString())
                 }
             }
@@ -179,6 +187,16 @@ class SceneFileTriangle : SceneFileShape() {
     var v1 = 0
     var v2 = 0
     var v3 = 0
+}
+
+class SceneFileNormTriangle : SceneFileShape() {
+    var v1 = 0
+    var v2 = 0
+    var v3 = 0
+
+    var n1 = 0
+    var n2 = 0
+    var n3 = 0
 }
 
 class SceneFileBackground {

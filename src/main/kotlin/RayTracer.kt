@@ -1,6 +1,7 @@
 import javafx.scene.image.Image
 import javafx.scene.image.WritableImage
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.LinkedHashMap
 import kotlin.math.*
 import kotlin.system.measureTimeMillis
@@ -164,6 +165,53 @@ data class Triangle(val p1: Point3d, val p2: Point3d, val p3: Point3d, override 
     }
 
     override fun normalAt(point: Point3d) = normalA.copy()
+
+    override fun ambientAt(point: Point3d) = material.ambient
+    override fun diffuseAt(point: Point3d) = material.diffuse
+    override fun specAt(point: Point3d) = material.specular
+    override fun transAt(point: Point3d) = material.trans
+    override fun phongExpAt(point: Point3d) = material.phongExp
+}
+
+data class NormTriangle(val p1: Point3d, val p2: Point3d, val p3: Point3d, val n1: Vector3d, val n2: Vector3d, val n3: Vector3d, override var material: Material) : RayIntersector {
+    val vecA = p2 - p1
+    val vecB = p3 - p1
+    val planarNormal = (vecA cross vecB).apply { this.normalize() }
+
+    val cache = ConcurrentHashMap<Point3d, Pair<Double, Double>>()
+
+    fun alphaBetaForPoint(point: Point3d): Pair<Double, Double>? {
+        val vec = point - p1
+        var a = (vecB cross vec) dot (vecB cross vecA)
+        var b = (vecA cross vec) dot (vecA cross vecB)
+        if (a < 0 || b < 0)
+            return null
+        val denom = (vecA cross vecB).length
+        a = (vecB cross vec).length / denom
+        b = (vecA cross vec).length / denom
+        if (a + b > 1)
+            return null
+        cache[point] = a to b
+        return a to b
+    }
+
+    override fun intersect(ray: Ray): Point3d? {
+        val t = ((p1 - ray.pos) dot planarNormal) / (planarNormal dot ray.vec)
+        if (t.isNaN() || t < 0)
+            return null
+        val pos = ray.pos + t * ray.vec
+        alphaBetaForPoint(pos) ?: return null
+        return pos
+    }
+
+    override fun normalAt(point: Point3d): Vector3d {
+        val (a, b) = cache[point] ?: alphaBetaForPoint(point) ?: error("Asked for normal outside of triangle")
+        val c = 1 - a - b
+        val vector = (1-a) * n1 + (1-b) * n2 + (1-c) * n3
+        vector.normalize()
+        cache.remove(point)
+        return vector
+    }
 
     override fun ambientAt(point: Point3d) = material.ambient
     override fun diffuseAt(point: Point3d) = material.diffuse

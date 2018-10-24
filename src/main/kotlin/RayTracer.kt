@@ -187,6 +187,13 @@ data class SpotLight(override val pos: Point3d, val dir: Vector3d, val innerAngl
     }
 }
 
+data class DirLight(val dir: Vector3d, override val color: RayColor) : Light() {
+    init {
+        dir.normalize()
+    }
+    override fun vectorTo(pos: Point3d) = dir.copy().apply { this.negate() }
+}
+
 class Scene(val camera: Camera, val objects: List<RayIntersector>, val background: RayColor = RayColor(0.0, 0.0, 0.0), val lights: List<Light>, val ambient: RayColor, val maxDepth: Int) {
     fun constructRay(i: Double, j: Double) = camera.constructRay(i, j)
 
@@ -249,11 +256,16 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
             if (lightVec dot normal < 0)
                 return@fold acc // If dot is negative, don't change the running sum (return acc to the fold lambda unchanged)
 
+            val shadowRay = Ray(point + 1e-10 * normal, lightVec)
+            val intersections = findIntersections(shadowRay)
             when (light) {
                 is PosLight -> {
                     val shadowRay = Ray(point + 1e-10 * normal, lightVec)
                     if (findIntersections(shadowRay).any { it.value.distanceSquared(light.pos) <= lightDist })
                         return@fold acc // If point is in shadow, don't change the running sum
+                }
+                is DirLight -> {
+                    if (intersections.isNotEmpty()) return@fold acc
                 }
                 else -> TODO(light.toString())
             }
@@ -262,7 +274,7 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
             lightRefl.negate()
             val viewVec = (camera.pos - point).apply { this.normalize() }
             val lightMod = when (light) {
-                is PointLight -> 1.0
+                is PointLight, is DirLight -> 1.0
                 is SpotLight -> {
                     val inner = cos(light.innerAngle)
                     val outer = cos(light.outerAngle)

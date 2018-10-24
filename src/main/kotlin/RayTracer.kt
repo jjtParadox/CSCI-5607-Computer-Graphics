@@ -1,21 +1,25 @@
 import javafx.scene.image.Image
 import javafx.scene.image.WritableImage
+import tornadofx.FXTask
 import java.util.*
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.collections.LinkedHashMap
 import kotlin.math.*
 import kotlin.system.measureTimeMillis
 
+val sceneProgress = AtomicInteger(0)
+
 // Example scene (currently broken)
-fun createRaycast(w: Int, h: Int): Image {
+fun createRaycast(w: Int, h: Int, task: FXTask<*>? = null): Image {
     val camera = Camera(Point3d(0.0, 0.0, 0.0), Vector3d(1.0, 0.0, 0.0), Vector3d(0.0, 1.0, 0.0), 0.2, w.toDouble(), h.toDouble())
 //    val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, RayColor(200.0, 100.0, 100.0))
 //    val smallSphere = Sphere(Point3d(77.0, 30.0, -7.0), 5.0, RayColor(100.0, 100.0, 200.0), diffuse = 0.5, spec = 1.0)
     val sphere = Sphere(Point3d(90.0, 0.0, 0.0), 20.0, Material(RayColor(200.0, 100.0, 100.0) / 255.0, RayColor(1.0, 1.0, 1.0), RayColor(1.0, 1.0, 1.0) * 3.0, 30.0, RayColor(0.0, 0.0, 0.0), 0.0))
     val scene = Scene(camera, listOf(sphere), RayColor(40.0, 40.0, 40.0) / 255.0, listOf(PointLight(Point3d(90.0, 300000.0, 0.0))), RayColor(1.0, 1.0, 1.0) * 0.15, 0)
-    return createRaycast(scene)
+    return createRaycast(scene, task)
 }
 
-fun createRaycast(scene: Scene): Image {
+fun createRaycast(scene: Scene, task: FXTask<*>? = null): Image {
     // Hardcoded jitter switch (Looks bad on spheres, so disabled)
     val jitter = false
     val w = scene.camera.width.roundToInt()
@@ -44,6 +48,8 @@ fun createRaycast(scene: Scene): Image {
                 // fold {} takes an initial value and a lambda operation to do on each element of the list
                 // Here, it's starting at black and adding 1/9th of each sample to that black ("acc" is the in-progress sum)
                 px.setColor(x, y, samples.fold(RayColor(0.0, 0.0, 0.0)) { acc, color -> acc + color/9.0 }.toColor())
+                val progress = sceneProgress.incrementAndGet()
+                task?.updateProgress(progress.toLong(), (w * h).toLong())
             }
         }
     }

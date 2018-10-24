@@ -27,33 +27,44 @@ class RayView: View() {
         graphicsContext2D.fillText("Loading...", 70.0, 105.0)
     }
 
+    val renderStatus: TaskStatus by inject()
+
     // Creates view structure with canvas and export button
     override val root = vbox {
         add(display)
-        button("Export") {
-            action {
-                // Export PNG from what's shown on the canvas
-                val image = WritableImage(display.width.toInt(), display.height.toInt())
-                display.snapshot(null, image)
-                ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", File("export.png"))
+        hbox {
+            button("Export") {
+                action {
+                    // Export PNG from what's shown on the canvas
+                    val image = WritableImage(display.width.toInt(), display.height.toInt())
+                    display.snapshot(null, image)
+                    ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", File("export.png"))
 
-                // Show confirmation text for 3 seconds
-                text = "Exported to export.png"
-                runAsync {
-                    Thread.sleep(3000)
-                } ui {
-                    text = "Export"
+                    // Show confirmation text for 3 seconds
+                    text = "Exported to export.png"
+                    runAsync {
+                        Thread.sleep(3000)
+                    } ui {
+                        text = "Export"
+                    }
                 }
             }
+            progressbar(renderStatus.progress) {
+                visibleWhen { renderStatus.running }
+                paddingAll = 4.0
+                minWidth = display.width / 3.0
+            }
+            paddingAll = 4.0
         }
 
         // Render scene in background
-        runAsync {
+        runAsync(true) {
             val scene = rayScene
+            updateProgress(0.0, display.width * display.height)
             if (scene != null) {
-                createRaycast(scene) // in RayTracer.kt
+                createRaycast(scene, this) // in RayTracer.kt
             } else {
-                createRaycast(display.width.toInt(), display.height.toInt()) // in RayTracer.kt
+                createRaycast(display.width.toInt(), display.height.toInt(), this) // in RayTracer.kt
             }
         } ui {
             // Update canvas with returned image (stored in 'it')

@@ -1,7 +1,6 @@
 import javafx.scene.image.Image
 import javafx.scene.image.WritableImage
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.LinkedHashMap
 import kotlin.math.*
 import kotlin.system.measureTimeMillis
@@ -174,11 +173,16 @@ data class Triangle(val p1: Point3d, val p2: Point3d, val p3: Point3d, override 
 }
 
 data class NormTriangle(val p1: Point3d, val p2: Point3d, val p3: Point3d, val n1: Vector3d, val n2: Vector3d, val n3: Vector3d, override var material: Material) : RayIntersector {
+    init {
+        n1.normalize()
+        n2.normalize()
+        n3.normalize()
+    }
     val vecA = p2 - p1
     val vecB = p3 - p1
     val planarNormal = (vecA cross vecB).apply { this.normalize() }
 
-    val cache = ConcurrentHashMap<Point3d, Pair<Double, Double>>()
+//    val cache = ConcurrentHashMap<Point3d, Pair<Double, Double>>()
 
     fun alphaBetaForPoint(point: Point3d): Pair<Double, Double>? {
         val vec = point - p1
@@ -191,7 +195,7 @@ data class NormTriangle(val p1: Point3d, val p2: Point3d, val p3: Point3d, val n
         b = (vecA cross vec).length / denom
         if (a + b > 1)
             return null
-        cache[point] = a to b
+//        cache[point] = a to b
         return a to b
     }
 
@@ -205,11 +209,12 @@ data class NormTriangle(val p1: Point3d, val p2: Point3d, val p3: Point3d, val n
     }
 
     override fun normalAt(point: Point3d): Vector3d {
-        val (a, b) = cache[point] ?: alphaBetaForPoint(point) ?: error("Asked for normal outside of triangle")
-        val c = 1 - a - b
-        val vector = (1-a) * n1 + (1-b) * n2 + (1-c) * n3
+//        val (b, c) = cache[point] ?: alphaBetaForPoint(point) ?: error("Asked for normal outside of triangle")
+        val (b, c) = alphaBetaForPoint(point) ?: error("Asked for normal outside of triangle")
+        val a = 1.0 - c - b
+        val vector = a * n1 + b * n2 + c * n3
         vector.normalize()
-        cache.remove(point)
+//        cache.remove(point)
         return vector
     }
 

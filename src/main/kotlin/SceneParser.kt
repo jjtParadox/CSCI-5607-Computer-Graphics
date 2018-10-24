@@ -131,6 +131,7 @@ class SceneFileBlueprint {
                 when (this) {
                     is SceneFilePointLight -> PointLight(Point3d(x, y, z), RayColor(r, g, b))
                     is SceneFileSpotLight -> SpotLight(Point3d(px, py, pz), Vector3d(dx, dy, dz), Math.toRadians(angle1), Math.toRadians(angle2), RayColor(r, g, b))
+                    is SceneFileDirLight -> DirLight(Vector3d(x, y, z), RayColor(r, g, b))
                     else -> TODO(it.toString())
                 }
             }

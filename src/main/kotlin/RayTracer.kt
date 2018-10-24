@@ -217,10 +217,13 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
             }
 
             // Calculate reflection vector and get intersection
-            var reflection = obj.specAt(point)
-            if (reflection != RayColor(0.0, 0.0, 0.0)) {
-                val reflVec = ray.vec - 2 * rayDot * normal
-                reflection = findIntersectionColor(Ray(point + 1e-10 * normal, reflVec, ray.depth + 1)) * reflection
+            var reflection = RayColor(0.0, 0.0, 0.0)
+            if (rayDot < 0) {
+                reflection = obj.specAt(point)
+                if (reflection != RayColor(0.0, 0.0, 0.0)) {
+                    val reflVec = ray.vec - 2 * rayDot * normal
+                    reflection = findIntersectionColor(Ray(point + 1e-10 * normal, reflVec, ray.depth + 1)) * reflection
+                }
             }
 
             // Calculate refraction vector
@@ -234,6 +237,9 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
                 } else {
                     refractionPoint = point + 1e-10 * normal
                     refractionAmnt = obj.material.refraction
+                    // Snell's law requires the normal to be pointing towards the light source, so invert the dot product and the normal
+                    rayDot = -rayDot
+                    normal.negate()
                 }
                 val refracVec = if (refractionAmnt != 1.0) refractionAmnt * ray.vec + (-refractionAmnt * rayDot - sqrt(1 - refractionAmnt.pow(2) * (1 - rayDot.pow(2)))) * normal else ray.vec.copy()
                 refraction = findIntersectionColor(Ray(refractionPoint, refracVec, ray.depth + 1)) * refraction

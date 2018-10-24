@@ -260,8 +260,7 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
             val intersections = findIntersections(shadowRay)
             when (light) {
                 is PosLight -> {
-                    val shadowRay = Ray(point + 1e-10 * normal, lightVec)
-                    if (findIntersections(shadowRay).any { it.value.distanceSquared(light.pos) <= lightDist })
+                    if (intersections.any { it.value.distanceSquared(shadowRay.pos) <= lightDist })
                         return@fold acc // If point is in shadow, don't change the running sum
                 }
                 is DirLight -> {

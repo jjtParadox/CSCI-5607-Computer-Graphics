@@ -141,10 +141,13 @@ data class Sphere(var pos: Point3d, var r: Double, override var material: Materi
 data class Triangle(val p1: Point3d, val p2: Point3d, val p3: Point3d, override var material: Material) : RayIntersector {
     val vecA = p2 - p1
     val vecB = p3 - p1
-    val normal = vecA cross vecB
+    val normalA = (vecA cross vecB).apply { this.normalize() }
+    val normalB = normalA.copy().apply { this.negate() }
+
     override fun intersect(ray: Ray): Point3d? {
-        val t = abs(((p1 - ray.pos) dot normal) / (normal dot ray.vec))
-        if (t.isNaN())
+        val normal = if (normalA dot ray.vec > 0) normalA else normalB
+        val t = ((p1 - ray.pos) dot normal) / (normal dot ray.vec)
+        if (t.isNaN() || t < 0)
             return null
         val pos = ray.pos + t * ray.vec
         val vec = pos - p1
@@ -160,7 +163,7 @@ data class Triangle(val p1: Point3d, val p2: Point3d, val p3: Point3d, override 
         return pos
     }
 
-    override fun normalAt(point: Point3d) = normal
+    override fun normalAt(point: Point3d) = normalA.copy()
 
     override fun ambientAt(point: Point3d) = material.ambient
     override fun diffuseAt(point: Point3d) = material.diffuse
@@ -207,7 +210,11 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
         var bounce = RayColor(0.0, 0.0, 0.0)
         if (ray.depth < maxDepth) {
             val normal = obj.normalAt(point)
-            val rayDot = ray.vec dot normal
+            var rayDot = ray.vec dot normal
+            if (obj is Triangle && rayDot > 0) {
+                normal.negate()
+                rayDot = -rayDot
+            }
 
             // Calculate reflection vector and get intersection
             var reflection = obj.specAt(point)
@@ -253,8 +260,12 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
             val lightDist = lightVec.lengthSquared
             lightVec.normalize()
             val normal = obj.normalAt(point)
-            if (lightVec dot normal < 0)
-                return@fold acc // If dot is negative, don't change the running sum (return acc to the fold lambda unchanged)
+            if (lightVec dot normal < 0) {
+                if (obj !is Triangle)
+                    return@fold acc // If dot is negative, don't change the running sum (return acc to the fold lambda unchanged)
+                else
+                    normal.negate()
+            }
 
             val shadowRay = Ray(point + 1e-10 * normal, lightVec)
             val intersections = findIntersections(shadowRay)

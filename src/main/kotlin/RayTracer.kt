@@ -108,7 +108,7 @@ data class Camera(val pos: Point3d, val towards: Vector3d, val up: Vector3d, val
     val downPoint = centerPoint - dist*tan(yFrustum)*up
 
     fun constructRay(i: Double, j: Double): Ray {
-        val x = leftPoint.lerp(rightPoint, i) - centerPoint
+        val x = rightPoint.lerp(leftPoint, i) - centerPoint
         val y = upPoint.lerp(downPoint, j) - centerPoint
         val point = x + y + centerPoint
         // Take the result of (point - pos) and normalize it

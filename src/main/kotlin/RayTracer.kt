@@ -23,6 +23,7 @@ fun createRaycast(w: Int, h: Int, task: FXTask<*>? = null): Image {
 fun createRaycast(scene: Scene, task: FXTask<*>? = null): Image {
     // Hardcoded jitter switch (Looks bad on spheres, so disabled)
     val jitter = false
+    val adaptive = true
     val w = scene.camera.width.roundToInt()
     val h = scene.camera.height.roundToInt()
     // Create an image to write to
@@ -37,18 +38,39 @@ fun createRaycast(scene: Scene, task: FXTask<*>? = null): Image {
                 // Take 9 samples per pixel
                 for (i in 1..3) {
                     for (j in 1..3) {
-                        val ray = if (jitter)
+                        val ray = if (jitter) {
                             scene.constructRay((x + Math.random()) / w, (y + Math.random()) / h)
-                        else
+                        } else {
+                            if (adaptive && (i == 2 || j == 2)) continue
                             scene.constructRay((x + 0.25 * i) / w, (y + 0.25 * j) / h)
+                        }
                         val point = scene.findIntersectionColor(ray)
                         samples.add(point)
                     }
                 }
-                // Set pixel position (x, y) to the average of the 9 samples
+                var size = samples.size.toDouble()
+                // Get the average of the X samples
                 // fold {} takes an initial value and a lambda operation to do on each element of the list
-                // Here, it's starting at black and adding 1/9th of each sample to that black ("acc" is the in-progress sum)
-                px.setColor(x, y, samples.fold(RayColor(0.0, 0.0, 0.0)) { acc, color -> acc + color/9.0 }.toColor())
+                // Here, it's starting at black and adding 1/Xth of each sample to that black ("acc" is the in-progress sum)
+                var sample = samples.fold(RayColor(0.0, 0.0, 0.0)) { acc, color -> acc + color/size }
+                if (!jitter && adaptive && samples.any { (it - sample).run {
+                            val sum = abs(r) + abs(g) + abs(b)
+                            sum > 0.01
+                        } }) {
+                    for (i in 1..3) {
+                        for (j in 1..3) {
+                            if (i == 2 || j == 2) {
+                                val ray = scene.constructRay((x + 0.25 * i) / w, (y + 0.25 * j) / h)
+                                val point = scene.findIntersectionColor(ray)
+                                samples.add(point)
+                            }
+                        }
+                    }
+                    size = samples.size.toDouble()
+                    sample = samples.fold(RayColor(0.0, 0.0, 0.0)) { acc, color -> acc + color/size }
+                }
+                px.setColor(x, y, sample.toColor())
+
                 val progress = sceneProgress.incrementAndGet()
                 if (task != null) {
                     if (progress - reportedProgress.get() > 100) {
@@ -275,10 +297,16 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
         var bounce = RayColor(0.0, 0.0, 0.0)
         if (ray.depth < maxDepth) {
             val normal = obj.normalAt(point)
+            var adjVec = normal
             var rayDot = ray.vec dot normal
             if (obj is Triangle && rayDot > 0) {
                 normal.negate()
                 rayDot = -rayDot
+            }
+            if (obj is NormTriangle) {
+                adjVec = obj.planarNormal
+                if (adjVec dot normal < 0)
+                    adjVec.negate()
             }
 
             // Calculate reflection vector and get intersection
@@ -287,7 +315,7 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
                 reflection = obj.specAt(point)
                 if (reflection != RayColor(0.0, 0.0, 0.0)) {
                     val reflVec = ray.vec - 2 * rayDot * normal
-                    reflection = findIntersectionColor(Ray(point + 1e-10 * normal, reflVec, ray.depth + 1)) * reflection
+                    reflection = findIntersectionColor(Ray(point + 1e-10 * adjVec, reflVec, ray.depth + 1)) * reflection
                 }
             }
 
@@ -297,10 +325,10 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
                 val refractionAmnt: Double
                 val refractionPoint: Point3d
                 if (rayDot < 0) {
-                    refractionPoint = point - 1e-10 * normal
+                    refractionPoint = point - 1e-10 * adjVec
                     refractionAmnt = 1.0 / obj.material.refraction
                 } else {
-                    refractionPoint = point + 1e-10 * normal
+                    refractionPoint = point + 1e-10 * adjVec
                     refractionAmnt = obj.material.refraction
                     // Snell's law requires the normal to be pointing towards the light source, so invert the dot product and the normal
                     rayDot = -rayDot
@@ -337,8 +365,14 @@ class Scene(val camera: Camera, val objects: List<RayIntersector>, val backgroun
                 else
                     normal.negate()
             }
+            var adjVec = normal
+            if (obj is NormTriangle) {
+                adjVec = obj.planarNormal
+                if (adjVec dot normal < 0)
+                    adjVec.negate()
+            }
 
-            val shadowRay = Ray(point + 1e-10 * normal, lightVec)
+            val shadowRay = Ray(point + 1e-10 * adjVec, lightVec)
             val intersections = findIntersections(shadowRay)
             when (light) {
                 is PosLight -> {

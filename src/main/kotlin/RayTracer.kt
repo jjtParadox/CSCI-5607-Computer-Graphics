@@ -8,6 +8,7 @@ import kotlin.math.*
 import kotlin.system.measureTimeMillis
 
 val sceneProgress = AtomicInteger(0)
+val reportedProgress = AtomicInteger(0)
 
 // Example scene (currently broken)
 fun createRaycast(w: Int, h: Int, task: FXTask<*>? = null): Image {
@@ -49,7 +50,12 @@ fun createRaycast(scene: Scene, task: FXTask<*>? = null): Image {
                 // Here, it's starting at black and adding 1/9th of each sample to that black ("acc" is the in-progress sum)
                 px.setColor(x, y, samples.fold(RayColor(0.0, 0.0, 0.0)) { acc, color -> acc + color/9.0 }.toColor())
                 val progress = sceneProgress.incrementAndGet()
-                task?.updateProgress(progress.toLong(), (w * h).toLong())
+                if (task != null) {
+                    if (progress - reportedProgress.get() > 100) {
+                        task.updateProgress(progress.toLong(), (w * h).toLong())
+                        reportedProgress.set(progress)
+                    }
+                }
             }
         }
     }

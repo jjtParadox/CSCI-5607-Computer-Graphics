@@ -27,7 +27,7 @@ class RayView: View() {
         graphicsContext2D.fillText("Loading...", 70.0, 105.0)
     }
 
-    val renderStatus: TaskStatus by inject()
+    val renderStatus: TaskStatus by inject() // Attaches this value to the first task run (below)
 
     // Creates view structure with canvas and export button
     override val root = vbox {

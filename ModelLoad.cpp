@@ -89,6 +89,14 @@ const GLchar* fragmentSource =
   "   outColor = vec4(ambC+diffuseC+specC, 1.0);"
   "}";
 
+int lastTicks;
+
+int charTurn = 0;
+int charMov = 0;
+
+float charRot = 0;
+float charPosX = 3.0;
+float charPosZ = 0;
 
 
 int main(int argc, char *argv[]) {
@@ -173,6 +181,7 @@ int main(int argc, char *argv[]) {
  
   SDL_Event windowEvent;
   bool quit = false;
+  lastTicks = SDL_GetTicks();
   while (!quit){
     while (SDL_PollEvent(&windowEvent)){
       if (windowEvent.type == SDL_QUIT) quit = true; //Exit Game Loop
@@ -181,27 +190,60 @@ int main(int argc, char *argv[]) {
       if (windowEvent.type == SDL_KEYUP && windowEvent.key.keysym.sym == SDLK_f){ 
         fullscreen = !fullscreen; 
         SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN : 0);
-      }  
+      }
+
+      if (windowEvent.type == SDL_KEYDOWN) {
+        if (windowEvent.key.keysym.sym == SDLK_LEFT) {
+          charTurn = -1;
+        }
+        else if (windowEvent.key.keysym.sym == SDLK_RIGHT) {
+          charTurn = 1;
+        }
+        if (windowEvent.key.keysym.sym == SDLK_UP) {
+          charMov = 1;
+        } else if (windowEvent.key.keysym.sym == SDLK_DOWN) {
+          charMov = -1;
+        }
+      }
+      if (windowEvent.type == SDL_KEYUP) {
+        if (windowEvent.key.keysym.sym == SDLK_LEFT || windowEvent.key.keysym.sym == SDLK_RIGHT) {
+          charTurn = 0;
+        }
+        if (windowEvent.key.keysym.sym == SDLK_UP || windowEvent.key.keysym.sym == SDLK_DOWN) {
+          charMov = 0;
+        }
+      }
     }
     // Clear the screen to default color
     glClearColor(.2f, 0.4f, 0.8f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    float time = SDL_GetTicks()/1000.f;
+    int deltaTicks = SDL_GetTicks() - lastTicks;
+    lastTicks += deltaTicks;
+    float time = deltaTicks/1000.0f;
+
+    charRot -= time * charTurn * 1;
+    charPosX -= time * charMov * cos((double) charRot) * 1;
+    charPosZ -= time * charMov * sin((double) charRot) * 1;
+
     glm::mat4 model;
-    model = glm::rotate(model,time * 3.14f/2,glm::vec3(0.0f, 1.0f, 1.0f));
-    model = glm::rotate(model,time * 3.14f/4,glm::vec3(1.0f, 0.0f, 0.0f));
+//    model = glm::rotate(model,time * 3.14f/2,glm::vec3(0.0f, 1.0f, 1.0f));
+//    model = glm::rotate(model,time * 3.14f/4,glm::vec3(1.0f, 0.0f, 0.0f));
     GLint uniModel = glGetUniformLocation(shaderProgram, "model");
     glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
 
-    glm::mat4 view = glm::lookAt(
-      glm::vec3(3.0f, 0.0f, 0.0f),  //Cam Position
-      glm::vec3(0.0f, 0.0f, 0.0f),  //Look at point
-      glm::vec3(0.0f, 0.0f, 1.0f)); //Up
+    glm::mat4 view;
+    view = glm::translate(view,glm::vec3(charPosX, charPosZ, 0.0f));
+    view = glm::rotate(view,charRot,glm::vec3(0.0f, 0.0f, 1.0f));
+    view = glm::rotate(view,(float)M_PI_2,glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::rotate(view,(float)M_PI_2,glm::vec3(0.0f, 0.0f, 1.0f));
+
+    view = glm::inverse(view);
+
     GLint uniView = glGetUniformLocation(shaderProgram, "view");
     glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
 
-    glm::mat4 proj = glm::perspective(3.14f/4, aspect, 1.0f, 10.0f); 
+    glm::mat4 proj = glm::perspective(3.14f/4, aspect, 0.1f, 10.0f);
                                       //FOV, aspect ratio, near, far
     GLint uniProj = glGetUniformLocation(shaderProgram, "proj");
     glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));

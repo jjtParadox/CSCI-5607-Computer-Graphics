@@ -251,7 +251,12 @@ int main(int argc, char *argv[]) {
     glUseProgram(shaderProgram);
     glBindVertexArray(vao);  //Bind the VAO for the shaders we are using
     glDrawArrays(GL_TRIANGLES, 0, numVerts); //Number of vertices
-    
+
+    glm::mat4 modelTrans = glm::translate(model,glm::vec3(0.0f, 2.0f, 0.0f));
+    GLint uniModelTrans = glGetUniformLocation(shaderProgram, "model");
+    glUniformMatrix4fv(uniModelTrans, 1, GL_FALSE, glm::value_ptr(modelTrans));
+    glDrawArrays(GL_TRIANGLES, 0, numVerts);
+
     SDL_GL_SwapWindow(window); //Double buffering
   }
   

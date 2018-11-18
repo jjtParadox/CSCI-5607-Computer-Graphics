@@ -392,13 +392,13 @@ int main(int argc, char *argv[]) {
     charRot -= time * charTurn * 1.5;
     float charDeltaX = time * charMov * cos((double) charRot) * 1.5;
     float charDeltaZ = time * charMov * sin((double) charRot) * 1.5;
-    float testPosX = charPosX - charDeltaX;
-    float testPosZ = charPosZ - charDeltaZ;
+    float testPosX = charPosX + charDeltaX;
+    float testPosZ = charPosZ + charDeltaZ;
     if (testPosX < mapX - 1 + 0.25 && testPosX > -0.25) {
-      charPosX -= charDeltaX;
+      charPosX += charDeltaX;
     }
     if (testPosZ < mapY - 1 + 0.25 && testPosZ > -0.25) {
-      charPosZ -= charDeltaZ;
+      charPosZ += charDeltaZ;
     }
 
     charJmpPos += time * charJmpVel;
@@ -434,8 +434,8 @@ int main(int argc, char *argv[]) {
     glm::mat4 view;
     view = glm::translate(view,glm::vec3(charPosX, charPosZ, charJmpPos));
     view = glm::rotate(view,charRot,glm::vec3(0.0f, 0.0f, 1.0f));
-    view = glm::rotate(view,(float)M_PI_2,glm::vec3(0.0f, 1.0f, 0.0f));
-    view = glm::rotate(view,(float)M_PI_2,glm::vec3(0.0f, 0.0f, 1.0f));
+    view = glm::rotate(view,(float)-M_PI_2,glm::vec3(0.0f, 1.0f, 0.0f));
+    view = glm::rotate(view,(float)-M_PI_2,glm::vec3(0.0f, 0.0f, 1.0f));
 
     view = glm::inverse(view);
 

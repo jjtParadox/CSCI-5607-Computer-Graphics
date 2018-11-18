@@ -114,9 +114,6 @@ float unlockDoorC = 0.0f;
 float unlockDoorD = 0.0f;
 float unlockDoorE = 0.0f;
 
-//int startPosX = 0;
-//int startPosY = 0;
-
 int goalPosX = 0;
 int goalPosY = 0;
 
@@ -426,8 +423,7 @@ int main(int argc, char *argv[]) {
     }
 
     glm::mat4 model;
-//    model = glm::rotate(model,time * 3.14f/2,glm::vec3(0.0f, 1.0f, 1.0f));
-//    model = glm::rotate(model,time * 3.14f/4,glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model,lastTicks/1000.0f * 3.14f/2,glm::vec3(0.0f, 0.0f, 1.0f));
     GLint uniModel = glGetUniformLocation(shaderProgram, "model");
     glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
 

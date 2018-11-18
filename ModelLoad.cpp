@@ -44,9 +44,9 @@ void loadShader(GLuint shaderID, const GLchar* shaderSource){
 const GLchar* vertexSource =
 "#version 150 core\n"
 "in vec3 position;"
-"const vec3 inColor = vec3(0.f,0.7f,0.f);"
+"uniform vec3 inColor = vec3(0.f,0.7f,0.f);"
 "in vec3 inNormal;"
-"const vec3 inlightDir = normalize(vec3(1,0,0));" 
+"const vec3 inlightDir = normalize(vec3(0,0,1));"
 "uniform mat4 model;"
 "uniform mat4 view;"
 "uniform mat4 proj;"
@@ -246,38 +246,37 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
- 
-  ifstream modelFile;
-  modelFile.open("models/teapot.txt");
-  int numLines = 0;
-  modelFile >> numLines;
-  float* modelData = new float[numLines];
-  for (int i = 0; i < numLines; i++){
-          modelFile >> modelData[i];
-  }
-  printf("Mode line count: %d\n",numLines);
-  float numVerts = numLines/8;
-
-  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER); 
+  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
   loadShader(vertexShader, vertexSource);
   GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
   loadShader(fragmentShader, fragmentSource);
-          
+
   //Join the vertex and fragment shaders together into one program
   GLuint shaderProgram = glCreateProgram();
   glAttachShader(shaderProgram, vertexShader);
   glAttachShader(shaderProgram, fragmentShader);
   glBindFragDataLocation(shaderProgram, 0, "outColor"); // set output
-  glLinkProgram(shaderProgram); //run the linker   
-  
-  GLuint vao;
-  glGenVertexArrays(1, &vao); //Create a VAO
-  glBindVertexArray(vao); //Bind the above created VAO to the current context
+  glLinkProgram(shaderProgram); //run the linker
 
-  GLuint vbo;
-  glGenBuffers(1, &vbo); 
-  glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, numLines*sizeof(float), modelData, GL_STATIC_DRAW); 
+  ifstream teapotFile;
+  teapotFile.open("models/teapot.txt");
+  int numLines = 0;
+  teapotFile >> numLines;
+  float* teapotData = new float[numLines];
+  for (int i = 0; i < numLines; i++){
+          teapotFile >> teapotData[i];
+  }
+  printf("Mode line count: %d\n",numLines);
+  float teapotVerts = numLines/8;
+
+  GLuint teapotVao;
+  glGenVertexArrays(1, &teapotVao); //Create a VAO
+  glBindVertexArray(teapotVao); //Bind the above created VAO to the current context
+
+  GLuint teapotVbo;
+  glGenBuffers(1, &teapotVbo);
+  glBindBuffer(GL_ARRAY_BUFFER, teapotVbo);
+  glBufferData(GL_ARRAY_BUFFER, numLines*sizeof(float), teapotData, GL_STATIC_DRAW);
 
   GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
   glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0);
@@ -287,8 +286,65 @@ int main(int argc, char *argv[]) {
   GLint normAttrib = glGetAttribLocation(shaderProgram, "inNormal");
   glVertexAttribPointer(normAttrib, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(5*sizeof(float)));
   glEnableVertexAttribArray(normAttrib);
-  
-  glEnable(GL_DEPTH_TEST); 
+
+  ifstream cubeFile;
+  cubeFile.open("models/cube.txt");
+  numLines = 0;
+  cubeFile >> numLines;
+  float* cubeData = new float[numLines];
+  for (int i = 0; i < numLines; i++){
+    cubeFile >> cubeData[i];
+  }
+  printf("Mode line count: %d\n",numLines);
+  float cubeVerts = numLines/8;
+
+  GLuint cubeVao;
+  glGenVertexArrays(1, &cubeVao); //Create a VAO
+  glBindVertexArray(cubeVao); //Bind the above created VAO to the current context
+
+  GLuint cubeVbo;
+  glGenBuffers(1, &cubeVbo);
+  glBindBuffer(GL_ARRAY_BUFFER, cubeVbo);
+  glBufferData(GL_ARRAY_BUFFER, numLines*sizeof(float), cubeData, GL_STATIC_DRAW);
+
+  posAttrib = glGetAttribLocation(shaderProgram, "position");
+  glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0);
+  //Attribute, vals/attrib., type, isNormalized, stride, offset
+  glEnableVertexAttribArray(posAttrib);
+
+  normAttrib = glGetAttribLocation(shaderProgram, "inNormal");
+  glVertexAttribPointer(normAttrib, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(5*sizeof(float)));
+  glEnableVertexAttribArray(normAttrib);
+
+  ifstream sphereFile;
+  sphereFile.open("models/sphere.txt");
+  numLines = 0;
+  sphereFile >> numLines;
+  float* sphereData = new float[numLines];
+  for (int i = 0; i < numLines; i++){
+    sphereFile >> sphereData[i];
+  }
+  printf("Mode line count: %d\n",numLines);
+  float sphereVerts = numLines/8;
+
+  GLuint sphereVao;
+  glGenVertexArrays(1, &sphereVao); //Create a VAO
+  glBindVertexArray(sphereVao); //Bind the above created VAO to the current context
+
+  GLuint sphereVbo;
+  glGenBuffers(1, &sphereVbo);
+  glBindBuffer(GL_ARRAY_BUFFER, sphereVbo);
+  glBufferData(GL_ARRAY_BUFFER, numLines*sizeof(float), sphereData, GL_STATIC_DRAW);
+
+  posAttrib = glGetAttribLocation(shaderProgram, "position");
+  glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), 0);
+  //Attribute, vals/attrib., type, isNormalized, stride, offset
+  glEnableVertexAttribArray(posAttrib);
+
+  normAttrib = glGetAttribLocation(shaderProgram, "inNormal");
+  glVertexAttribPointer(normAttrib, 3, GL_FLOAT, GL_FALSE, 8*sizeof(float), (void*)(5*sizeof(float)));
+  glEnableVertexAttribArray(normAttrib);
+  glEnable(GL_DEPTH_TEST);
  
   SDL_Event windowEvent;
   bool quit = false;
@@ -367,6 +423,10 @@ int main(int argc, char *argv[]) {
     GLint uniModel = glGetUniformLocation(shaderProgram, "model");
     glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
 
+    glm::vec3 greenColor(0.0f, 1.0f, 0.0f);
+    GLint uniColor = glGetUniformLocation(shaderProgram, "inColor");
+    glUniform3fv(uniColor, 1, glm::value_ptr(greenColor));
+
     glm::mat4 view;
     view = glm::translate(view,glm::vec3(charPosX, charPosZ, charJmpPos));
     view = glm::rotate(view,charRot,glm::vec3(0.0f, 0.0f, 1.0f));
@@ -384,13 +444,33 @@ int main(int argc, char *argv[]) {
     glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
 
     glUseProgram(shaderProgram);
-    glBindVertexArray(vao);  //Bind the VAO for the shaders we are using
-    glDrawArrays(GL_TRIANGLES, 0, numVerts); //Number of vertices
+    glBindVertexArray(teapotVao);  //Bind the VAO for the shaders we are using
+    glDrawArrays(GL_TRIANGLES, 0, teapotVerts); //Number of vertices
 
-    glm::mat4 modelTrans = glm::translate(model,glm::vec3(0.0f, 2.0f, 0.0f));
-    GLint uniModelTrans = glGetUniformLocation(shaderProgram, "model");
-    glUniformMatrix4fv(uniModelTrans, 1, GL_FALSE, glm::value_ptr(modelTrans));
-    glDrawArrays(GL_TRIANGLES, 0, numVerts);
+    // Draw goal
+    glBindVertexArray(sphereVao);
+    glm::mat4 sphereModel;
+    sphereModel = glm::translate(sphereModel,glm::vec3(goalPosX, goalPosY, 0.0));
+    glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(sphereModel));
+    glm::vec3 yellowColor(1.0f, 1.0f, 0.0f);
+    glUniform3fv(uniColor, 1, glm::value_ptr(yellowColor));
+    glDrawArrays(GL_TRIANGLES, 0, sphereVerts);
+
+    // Draw walls and floors
+    glBindVertexArray(cubeVao);
+    glUniform3fv(uniColor, 1, glm::value_ptr(greenColor));
+    for (int i = 0; i < mapX; i++) {
+      for (int j = 0; j < mapY; j++) {
+        int yPos = -1;
+        if (walls[j * mapX + i]) {
+          yPos = 0;
+        }
+        glm::mat4 cubeModel;
+        cubeModel = glm::translate(cubeModel,glm::vec3(i, j, yPos));
+        glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(cubeModel));
+        glDrawArrays(GL_TRIANGLES, 0, cubeVerts);
+      }
+    }
 
     SDL_GL_SwapWindow(window); //Double buffering
   }
@@ -398,8 +478,12 @@ int main(int argc, char *argv[]) {
   glDeleteProgram(shaderProgram);
   glDeleteShader(fragmentShader);
   glDeleteShader(vertexShader);
-  glDeleteBuffers(1, &vbo);
-  glDeleteVertexArrays(1, &vao);
+  glDeleteBuffers(1, &teapotVbo);
+  glDeleteVertexArrays(1, &teapotVao);
+  glDeleteBuffers(1, &cubeVbo);
+  glDeleteVertexArrays(1, &cubeVao);
+  glDeleteBuffers(1, &sphereVbo);
+  glDeleteVertexArrays(1, &sphereVao);
   SDL_GL_DeleteContext(context);
   SDL_Quit();
 

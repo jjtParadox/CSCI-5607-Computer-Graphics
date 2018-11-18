@@ -472,6 +472,26 @@ int main(int argc, char *argv[]) {
       }
     }
 
+    // Draw maze boundaries
+    glm::vec3 darkRedColor(0.7f, 0.0f, 0.0f);
+    glUniform3fv(uniColor, 1, glm::value_ptr(darkRedColor));
+    glm::mat4 cubeModel;
+    cubeModel = glm::translate(cubeModel,glm::vec3(mapX/2,-1.0,0.0));
+    cubeModel = glm::scale(cubeModel,glm::vec3(mapX,1.0,1.0));
+    glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(cubeModel));
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerts);
+    cubeModel = glm::translate(cubeModel,glm::vec3(0.0,mapY + 1,0.0));
+    glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(cubeModel));
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerts);
+    cubeModel = glm::mat4();
+    cubeModel = glm::translate(cubeModel,glm::vec3(-1.0,mapY/2,0.0));
+    cubeModel = glm::scale(cubeModel,glm::vec3(1.0,mapY,1.0));
+    glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(cubeModel));
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerts);
+    cubeModel = glm::translate(cubeModel,glm::vec3(mapX + 1,0.0,0.0));
+    glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(cubeModel));
+    glDrawArrays(GL_TRIANGLES, 0, cubeVerts);
+
     SDL_GL_SwapWindow(window); //Double buffering
   }
   

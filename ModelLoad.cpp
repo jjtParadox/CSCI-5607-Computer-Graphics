@@ -114,6 +114,9 @@ float unlockDoorC = 0.0f;
 float unlockDoorD = 0.0f;
 float unlockDoorE = 0.0f;
 
+int startPosX = 0;
+int startPosY = 0;
+
 int goalPosX = 0;
 int goalPosY = 0;
 
@@ -155,8 +158,10 @@ int main(int argc, char *argv[]) {
             walls[i * mapX + j] = true;
             break;
           case 'S':
-            charPosX = j;
-            charPosZ = i;
+            startPosX = j;
+            startPosY = i;
+            charPosX = startPosX;
+            charPosZ = startPosY;
             break;
           case 'G':
             goalPosX = j;
@@ -183,22 +188,27 @@ int main(int argc, char *argv[]) {
             keyEPosY = i;
             break;
           case 'A':
+            walls[i * mapX + j] = true;
             doorAPosX = j;
             doorAPosY = i;
             break;
           case 'B':
+            walls[i * mapX + j] = true;
             doorBPosX = j;
             doorBPosY = i;
             break;
           case 'C':
+            walls[i * mapX + j] = true;
             doorCPosX = j;
             doorCPosY = i;
             break;
           case 'D':
+            walls[i * mapX + j] = true;
             doorDPosX = j;
             doorDPosY = i;
             break;
           case 'E':
+            walls[i * mapX + j] = true;
             doorEPosX = j;
             doorEPosY = i;
             break;
@@ -389,16 +399,106 @@ int main(int argc, char *argv[]) {
     lastTicks += deltaTicks;
     float time = deltaTicks/1000.0f;
 
+    // Update positions and collide with walls
     charRot -= time * charTurn * 1.5;
     float charDeltaX = time * charMov * cos((double) charRot) * 1.5;
     float charDeltaZ = time * charMov * sin((double) charRot) * 1.5;
     float testPosX = charPosX + charDeltaX;
     float testPosZ = charPosZ + charDeltaZ;
+    int testIndexN = round(testPosZ + 0.25) * mapX + round(testPosX);
+    int testIndexS = round(testPosZ - 0.25) * mapX + round(testPosX);
+    int testIndexE = round(testPosZ) * mapX + round(testPosX + 0.25);
+    int testIndexW = round(testPosZ) * mapX + round(testPosX - 0.25);
     if (testPosX < mapX - 1 + 0.25 && testPosX > -0.25) {
-      charPosX += charDeltaX;
+      if (!walls[testIndexE] && !walls[testIndexW]) {
+        charPosX += charDeltaX;
+      }
     }
     if (testPosZ < mapY - 1 + 0.25 && testPosZ > -0.25) {
-      charPosZ += charDeltaZ;
+      if (!walls[testIndexN] && !walls[testIndexS]) {
+        charPosZ += charDeltaZ;
+      }
+    }
+
+    // Check collisions with keys, doors, and goals
+    float charPosN = round(charPosZ + 0.5);
+    float charPosS = round(charPosZ - 0.5);
+    float charPosE = round(charPosX + 0.5);
+    float charPosW = round(charPosX - 0.5);
+
+    if (round(charPosX) == keyAPosX && round(charPosZ) == keyAPosX) {
+      hasKeyA = true;
+    }
+    if (round(charPosX) == keyBPosX && round(charPosZ) == keyBPosX) {
+      hasKeyB = true;
+    }
+    if (round(charPosX) == keyCPosX && round(charPosZ) == keyCPosX) {
+      hasKeyC = true;
+    }
+    if (round(charPosX) == keyDPosX && round(charPosZ) == keyDPosX) {
+      hasKeyD = true;
+    }
+    if (round(charPosX) == keyEPosX && round(charPosZ) == keyEPosX) {
+      hasKeyE = true;
+    }
+
+    if ((charPosE == doorAPosX || charPosW == doorAPosX) && (charPosN == doorAPosY || charPosS == doorAPosY) && (round(charPosX) == doorAPosX || round(charPosZ) == doorAPosY)) {
+      if (hasKeyA && unlockDoorA == 0.0) {
+        unlockDoorA = 1.0;
+      }
+    }
+    if ((charPosE == doorBPosX || charPosW == doorBPosX) && (charPosN == doorBPosY || charPosS == doorBPosY) && (round(charPosX) == doorBPosX || round(charPosZ) == doorBPosY)) {
+      if (hasKeyB && unlockDoorB == 0.0) {
+        unlockDoorB = 1.0;
+      }
+    }
+    if ((charPosE == doorCPosX || charPosW == doorCPosX) && (charPosN == doorCPosY || charPosS == doorCPosY) && (round(charPosX) == doorCPosX || round(charPosZ) == doorCPosY)) {
+      if (hasKeyC && unlockDoorC == 0.0) {
+        unlockDoorC = 1.0;
+      }
+    }
+    if ((charPosE == doorDPosX || charPosW == doorDPosX) && (charPosN == doorDPosY || charPosS == doorDPosY) && (round(charPosX) == doorDPosX || round(charPosZ) == doorDPosY)) {
+      if (hasKeyD && unlockDoorD == 0.0) {
+        unlockDoorD = 1.0;
+      }
+    }
+    if ((charPosE == doorEPosX || charPosW == doorEPosX) && (charPosN == doorEPosY || charPosS == doorEPosY) && (round(charPosX) == doorEPosX || round(charPosZ) == doorEPosY)) {
+      if (hasKeyE && unlockDoorE == 0.0) {
+        unlockDoorE = 1.0;
+      }
+    }
+
+    // Reset game on goal
+    if ((charPosE == goalPosX || charPosW == goalPosX) && (charPosN == goalPosY || charPosS == goalPosY)) {
+      if (doorAPosX > -1) {
+        walls[doorAPosY * mapX + doorAPosX] = true;
+      }
+      if (doorBPosX > -1) {
+        walls[doorBPosY * mapX + doorBPosX] = true;
+      }
+      if (doorCPosX > -1) {
+        walls[doorCPosY * mapX + doorCPosX] = true;
+      }
+      if (doorDPosX > -1) {
+        walls[doorDPosY * mapX + doorDPosX] = true;
+      }
+      if (doorEPosX > -1) {
+        walls[doorEPosY * mapX + doorEPosX] = true;
+      }
+      unlockDoorA = 0.0;
+      unlockDoorB = 0.0;
+      unlockDoorC = 0.0;
+      unlockDoorD = 0.0;
+      unlockDoorE = 0.0;
+      hasKeyA = false;
+      hasKeyB = false;
+      hasKeyC = false;
+      hasKeyD = false;
+      hasKeyE = false;
+
+      charRot = 0;
+      charPosX = startPosX;
+      charPosZ = startPosY;
     }
 
     charJmpPos += time * charJmpVel;
@@ -406,20 +506,36 @@ int main(int argc, char *argv[]) {
     if (charJmpPos < 0) charJmpPos = 0;
     if (charJmpVel < -100) charJmpVel = -100;
 
-    if (unlockDoorA > 0 && unlockDoorA < 5) {
+    // Animate doors when unlocking
+    if (unlockDoorA > 0 && unlockDoorA < 2) {
       unlockDoorA += time * 2;
+      if (unlockDoorA > 1.75) {
+        walls[doorAPosY * mapX + doorAPosX] = false;
+      }
     }
-    if (unlockDoorB > 0 && unlockDoorB < 5) {
+    if (unlockDoorB > 0 && unlockDoorB < 2) {
       unlockDoorB += time * 2;
+      if (unlockDoorB > 1.75) {
+        walls[doorBPosY * mapX + doorBPosX] = false;
+      }
     }
-    if (unlockDoorC > 0 && unlockDoorC < 5) {
+    if (unlockDoorC > 0 && unlockDoorC < 2) {
       unlockDoorC += time * 2;
+      if (unlockDoorC > 1.75) {
+        walls[doorCPosY * mapX + doorCPosX] = false;
+      }
     }
-    if (unlockDoorD > 0 && unlockDoorD < 5) {
+    if (unlockDoorD > 0 && unlockDoorD < 2) {
       unlockDoorD += time * 2;
+      if (unlockDoorD > 1.75) {
+        walls[doorDPosY * mapX + doorDPosX] = false;
+      }
     }
-    if (unlockDoorE > 0 && unlockDoorE < 5) {
+    if (unlockDoorE > 0 && unlockDoorE < 2) {
       unlockDoorE += time * 2;
+      if (unlockDoorE > 1.75) {
+        walls[doorEPosY * mapX + doorEPosX] = false;
+      }
     }
 
     glm::mat4 model;
@@ -460,14 +576,47 @@ int main(int argc, char *argv[]) {
     glUniform3fv(uniColor, 1, glm::value_ptr(yellowColor));
     glDrawArrays(GL_TRIANGLES, 0, sphereVerts);
 
-    // Draw walls and floors
+    // Draw walls, doors, and floors
     glBindVertexArray(cubeVao);
-    glUniform3fv(uniColor, 1, glm::value_ptr(greenColor));
+    glm::vec3 greenColor(0.0f, 1.0f, 0.0f);
     for (int i = 0; i < mapX; i++) {
       for (int j = 0; j < mapY; j++) {
-        int yPos = -1;
+        float yPos = -1;
         if (walls[j * mapX + i]) {
           yPos = 0;
+        }
+        if (i == doorAPosX && j == doorAPosY) {
+          glUniform3fv(uniColor, 1, glm::value_ptr(glm::vec3(1.0,0.0,0.0)));
+          if (unlockDoorA > 0) {
+            yPos = 1.0f - unlockDoorA;
+          }
+        }
+        else if (i == doorBPosX && j == doorBPosY) {
+          glUniform3fv(uniColor, 1, glm::value_ptr(glm::vec3(0.0,0.0,1.0)));
+          if (unlockDoorB > 0) {
+            yPos = 1.0f - unlockDoorB;
+          }
+        }
+        else if (i == doorCPosX && j == doorCPosY) {
+          glUniform3fv(uniColor, 1, glm::value_ptr(glm::vec3(1.0,0.0,1.0)));
+          if (unlockDoorC > 0) {
+            yPos = 1.0f - unlockDoorC;
+          }
+        }
+        else if (i == doorDPosX && j == doorDPosY) {
+          glUniform3fv(uniColor, 1, glm::value_ptr(glm::vec3(0.0,1.0,1.0)));
+          if (unlockDoorD > 0) {
+            yPos = 1.0f - unlockDoorD;
+          }
+        }
+        else if (i == doorEPosX && j == doorEPosY) {
+          glUniform3fv(uniColor, 1, glm::value_ptr(glm::vec3(1.0,1.0,1.0)));
+          if (unlockDoorE > 0) {
+            yPos = 1.0 - unlockDoorE;
+          }
+        }
+        else {
+          glUniform3fv(uniColor, 1, glm::value_ptr(greenColor));
         }
         glm::mat4 cubeModel;
         cubeModel = glm::translate(cubeModel,glm::vec3(i, j, yPos));

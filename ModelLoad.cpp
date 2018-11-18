@@ -392,9 +392,17 @@ int main(int argc, char *argv[]) {
     lastTicks += deltaTicks;
     float time = deltaTicks/1000.0f;
 
-    charRot -= time * charTurn * 1;
-    charPosX -= time * charMov * cos((double) charRot) * 1;
-    charPosZ -= time * charMov * sin((double) charRot) * 1;
+    charRot -= time * charTurn * 1.5;
+    float charDeltaX = time * charMov * cos((double) charRot) * 1.5;
+    float charDeltaZ = time * charMov * sin((double) charRot) * 1.5;
+    float testPosX = charPosX - charDeltaX;
+    float testPosZ = charPosZ - charDeltaZ;
+    if (testPosX < mapX - 1 + 0.25 && testPosX > -0.25) {
+      charPosX -= charDeltaX;
+    }
+    if (testPosZ < mapY - 1 + 0.25 && testPosZ > -0.25) {
+      charPosZ -= charDeltaZ;
+    }
 
     charJmpPos += time * charJmpVel;
     charJmpVel -= time * 20;

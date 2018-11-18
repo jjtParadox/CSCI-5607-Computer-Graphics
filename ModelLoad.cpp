@@ -538,15 +538,6 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    glm::mat4 model;
-    model = glm::rotate(model,lastTicks/1000.0f * 3.14f/2,glm::vec3(0.0f, 0.0f, 1.0f));
-    GLint uniModel = glGetUniformLocation(shaderProgram, "model");
-    glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
-
-    glm::vec3 greenColor(0.0f, 1.0f, 0.0f);
-    GLint uniColor = glGetUniformLocation(shaderProgram, "inColor");
-    glUniform3fv(uniColor, 1, glm::value_ptr(greenColor));
-
     glm::mat4 view;
     view = glm::translate(view,glm::vec3(charPosX, charPosZ, charJmpPos));
     view = glm::rotate(view,charRot,glm::vec3(0.0f, 0.0f, 1.0f));
@@ -564,8 +555,81 @@ int main(int argc, char *argv[]) {
     glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
 
     glUseProgram(shaderProgram);
+
+    // Draw keys
     glBindVertexArray(teapotVao);  //Bind the VAO for the shaders we are using
-    glDrawArrays(GL_TRIANGLES, 0, teapotVerts); //Number of vertices
+    GLint uniModel = glGetUniformLocation(shaderProgram, "model");
+    GLint uniColor = glGetUniformLocation(shaderProgram, "inColor");
+    if (keyAPosX > -1) {
+      glm::mat4 teapotModel;
+      if (!hasKeyA) {
+        teapotModel = glm::translate(teapotModel, glm::vec3(keyAPosX, keyAPosY, -0.3f));
+        teapotModel = glm::rotate(teapotModel, lastTicks / 1000.0f * 3.14f / 2, glm::vec3(0.0f, 0.0f, 1.0f));
+      } else {
+        teapotModel = glm::translate(teapotModel, glm::vec3(charPosX + cos(charRot) * 0.5, charPosZ + sin(charRot) * 0.5, -0.1f));
+        teapotModel = glm::scale(teapotModel, glm::vec3(0.4f, 0.4f, 0.4f));
+      }
+      teapotModel = glm::scale(teapotModel, glm::vec3(0.7f, 0.7f, 0.7f));
+      glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(teapotModel));
+      glUniform3fv(uniColor, 1, glm::value_ptr(glm::vec3(1.0, 0.0, 0.0)));
+      glDrawArrays(GL_TRIANGLES, 0, teapotVerts);
+    }
+    if (keyBPosX > -1) {
+      glm::mat4 teapotModel;
+      if (!hasKeyB) {
+        teapotModel = glm::translate(teapotModel, glm::vec3(keyBPosX, keyBPosY, -0.3f));
+        teapotModel = glm::rotate(teapotModel, lastTicks / 1000.0f * 3.14f / 2, glm::vec3(0.0f, 0.0f, 1.0f));
+      } else {
+        teapotModel = glm::translate(teapotModel, glm::vec3(charPosX + cos(charRot) * 0.5, charPosZ + sin(charRot) * 0.5, -0.1f));
+        teapotModel = glm::scale(teapotModel, glm::vec3(0.4f, 0.4f, 0.4f));
+      }
+      teapotModel = glm::scale(teapotModel, glm::vec3(0.71f, 0.71f, 0.71f));
+      glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(teapotModel));
+      glUniform3fv(uniColor, 1, glm::value_ptr(glm::vec3(0.0, 0.0, 1.0)));
+      glDrawArrays(GL_TRIANGLES, 0, teapotVerts);
+    }
+    if (keyCPosX > -1) {
+      glm::mat4 teapotModel;
+      if (!hasKeyC) {
+        teapotModel = glm::translate(teapotModel, glm::vec3(keyCPosX, keyCPosY, -0.3f));
+        teapotModel = glm::rotate(teapotModel, lastTicks / 1000.0f * 3.14f / 2, glm::vec3(0.0f, 0.0f, 1.0f));
+      } else {
+        teapotModel = glm::translate(teapotModel, glm::vec3(charPosX + cos(charRot) * 0.5, charPosZ + sin(charRot) * 0.5, -0.1f));
+        teapotModel = glm::scale(teapotModel, glm::vec3(0.4f, 0.4f, 0.4f));
+      }
+      teapotModel = glm::scale(teapotModel, glm::vec3(0.72f, 0.72f, 0.72f));
+      glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(teapotModel));
+      glUniform3fv(uniColor, 1, glm::value_ptr(glm::vec3(1.0, 0.0, 1.0)));
+      glDrawArrays(GL_TRIANGLES, 0, teapotVerts);
+    }
+    if (keyDPosX > -1) {
+      glm::mat4 teapotModel;
+      if (!hasKeyD) {
+        teapotModel = glm::translate(teapotModel, glm::vec3(keyDPosX, keyDPosY, -0.3f));
+        teapotModel = glm::rotate(teapotModel, lastTicks / 1000.0f * 3.14f / 2, glm::vec3(0.0f, 0.0f, 1.0f));
+      } else {
+        teapotModel = glm::translate(teapotModel, glm::vec3(charPosX + cos(charRot) * 0.5, charPosZ + sin(charRot) * 0.5, -0.1f));
+        teapotModel = glm::scale(teapotModel, glm::vec3(0.4f, 0.4f, 0.4f));
+      }
+      teapotModel = glm::scale(teapotModel, glm::vec3(0.73f, 0.73f, 0.73f));
+      glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(teapotModel));
+      glUniform3fv(uniColor, 1, glm::value_ptr(glm::vec3(0.0, 1.0, 1.0)));
+      glDrawArrays(GL_TRIANGLES, 0, teapotVerts);
+    }
+    if (keyEPosX > -1) {
+      glm::mat4 teapotModel;
+      if (!hasKeyE) {
+        teapotModel = glm::translate(teapotModel, glm::vec3(keyEPosX, keyEPosY, -0.3f));
+        teapotModel = glm::rotate(teapotModel, lastTicks / 1000.0f * 3.14f / 2, glm::vec3(0.0f, 0.0f, 1.0f));
+      } else {
+        teapotModel = glm::translate(teapotModel, glm::vec3(charPosX + cos(charRot) * 0.5, charPosZ + sin(charRot) * 0.5, -0.1f));
+        teapotModel = glm::scale(teapotModel, glm::vec3(0.4f, 0.4f, 0.4f));
+      }
+      teapotModel = glm::scale(teapotModel, glm::vec3(0.74f, 0.74f, 0.74f));
+      glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(teapotModel));
+      glUniform3fv(uniColor, 1, glm::value_ptr(glm::vec3(1.0, 1.0, 1.0)));
+      glDrawArrays(GL_TRIANGLES, 0, teapotVerts);
+    }
 
     // Draw goal
     glBindVertexArray(sphereVao);

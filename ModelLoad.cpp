@@ -97,9 +97,120 @@ int charMov = 0;
 float charRot = 0;
 float charPosX = 3.0;
 float charPosZ = 0;
+float charJmpPos = 0;
+float charJmpVel = 0;
+
+int mapX, mapY;
+
+bool hasKeyA = false;
+bool hasKeyB = false;
+bool hasKeyC = false;
+bool hasKeyD = false;
+bool hasKeyE = false;
+
+float unlockDoorA = 0.0f;
+float unlockDoorB = 0.0f;
+float unlockDoorC = 0.0f;
+float unlockDoorD = 0.0f;
+float unlockDoorE = 0.0f;
+
+//int startPosX = 0;
+//int startPosY = 0;
+
+int goalPosX = 0;
+int goalPosY = 0;
+
+int doorAPosX = -1;
+int doorAPosY = -1;
+int doorBPosX = -1;
+int doorBPosY = -1;
+int doorCPosX = -1;
+int doorCPosY = -1;
+int doorDPosX = -1;
+int doorDPosY = -1;
+int doorEPosX = -1;
+int doorEPosY = -1;
+
+int keyAPosX = -1;
+int keyAPosY = -1;
+int keyBPosX = -1;
+int keyBPosY = -1;
+int keyCPosX = -1;
+int keyCPosY = -1;
+int keyDPosX = -1;
+int keyDPosY = -1;
+int keyEPosX = -1;
+int keyEPosY = -1;
 
 
 int main(int argc, char *argv[]) {
+  ifstream mapFile;
+  mapFile.open("map.txt");
+  mapFile >> mapX >> mapY;
+  bool *walls = new bool[mapX * mapY];
+  for (int i = 0; i < mapY; i++) {
+      std::string line;
+      mapFile >> line;
+      for (int j = 0; j < mapX; j++) {
+        walls[i * mapX + j] = false;
+        switch (line[j]) {
+          case 'W':
+            walls[i * mapX + j] = true;
+            break;
+          case 'S':
+            charPosX = j;
+            charPosZ = i;
+            break;
+          case 'G':
+            goalPosX = j;
+            goalPosY = i;
+            break;
+          case 'a':
+            keyAPosX = j;
+            keyAPosY = i;
+            break;
+          case 'b':
+            keyBPosX = j;
+            keyBPosY = i;
+            break;
+          case 'c':
+            keyCPosX = j;
+            keyCPosY = i;
+            break;
+          case 'd':
+            keyDPosX = j;
+            keyDPosY = i;
+            break;
+          case 'e':
+            keyEPosX = j;
+            keyEPosY = i;
+            break;
+          case 'A':
+            doorAPosX = j;
+            doorAPosY = i;
+            break;
+          case 'B':
+            doorBPosX = j;
+            doorBPosY = i;
+            break;
+          case 'C':
+            doorCPosX = j;
+            doorCPosY = i;
+            break;
+          case 'D':
+            doorDPosX = j;
+            doorDPosY = i;
+            break;
+          case 'E':
+            doorEPosX = j;
+            doorEPosY = i;
+            break;
+          default:
+            break;
+        }
+      }
+  }
+
   SDL_Init(SDL_INIT_VIDEO);  //Initialize Graphics (for OpenGL)
     
   //Print the version of SDL we are using 
@@ -204,6 +315,9 @@ int main(int argc, char *argv[]) {
         } else if (windowEvent.key.keysym.sym == SDLK_DOWN) {
           charMov = -1;
         }
+        if (windowEvent.key.keysym.sym == SDLK_SPACE && charJmpPos == 0.0) {
+            charJmpVel = 5;
+        }
       }
       if (windowEvent.type == SDL_KEYUP) {
         if (windowEvent.key.keysym.sym == SDLK_LEFT || windowEvent.key.keysym.sym == SDLK_RIGHT) {
@@ -226,6 +340,27 @@ int main(int argc, char *argv[]) {
     charPosX -= time * charMov * cos((double) charRot) * 1;
     charPosZ -= time * charMov * sin((double) charRot) * 1;
 
+    charJmpPos += time * charJmpVel;
+    charJmpVel -= time * 20;
+    if (charJmpPos < 0) charJmpPos = 0;
+    if (charJmpVel < -100) charJmpVel = -100;
+
+    if (unlockDoorA > 0 && unlockDoorA < 5) {
+      unlockDoorA += time * 2;
+    }
+    if (unlockDoorB > 0 && unlockDoorB < 5) {
+      unlockDoorB += time * 2;
+    }
+    if (unlockDoorC > 0 && unlockDoorC < 5) {
+      unlockDoorC += time * 2;
+    }
+    if (unlockDoorD > 0 && unlockDoorD < 5) {
+      unlockDoorD += time * 2;
+    }
+    if (unlockDoorE > 0 && unlockDoorE < 5) {
+      unlockDoorE += time * 2;
+    }
+
     glm::mat4 model;
 //    model = glm::rotate(model,time * 3.14f/2,glm::vec3(0.0f, 1.0f, 1.0f));
 //    model = glm::rotate(model,time * 3.14f/4,glm::vec3(1.0f, 0.0f, 0.0f));
@@ -233,7 +368,7 @@ int main(int argc, char *argv[]) {
     glUniformMatrix4fv(uniModel, 1, GL_FALSE, glm::value_ptr(model));
 
     glm::mat4 view;
-    view = glm::translate(view,glm::vec3(charPosX, charPosZ, 0.0f));
+    view = glm::translate(view,glm::vec3(charPosX, charPosZ, charJmpPos));
     view = glm::rotate(view,charRot,glm::vec3(0.0f, 0.0f, 1.0f));
     view = glm::rotate(view,(float)M_PI_2,glm::vec3(0.0f, 1.0f, 0.0f));
     view = glm::rotate(view,(float)M_PI_2,glm::vec3(0.0f, 0.0f, 1.0f));

@@ -46,7 +46,7 @@ const GLchar* vertexSource =
 "in vec3 position;"
 "uniform vec3 inColor = vec3(0.f,0.7f,0.f);"
 "in vec3 inNormal;"
-"const vec3 inlightDir = normalize(vec3(0,0,1));"
+"const vec3 inlightDir = normalize(vec3(1,0,1));"
 "uniform mat4 model;"
 "uniform mat4 view;"
 "uniform mat4 proj;"
@@ -84,7 +84,7 @@ const GLchar* fragmentSource =
   "   vec3 reflectDir = reflect(-lightDir,N);" 
   "   vec3 viewDir = normalize(-pos);"  //We know the eye is at 0,0
   "   float spec = max(dot(reflectDir,viewDir),0.0);"
-  "   if (dot(lightDir,N) <= 0.0) spec = 0;"
+  "   if (dot(lightDir,N) <= -0.00001) spec = 0;"
   "   vec3 specC = vec3(.8,.8,.8)*pow(spec,4);"
   "   outColor = vec4(ambC+diffuseC+specC, 1.0);"
   "}";

@@ -409,14 +409,28 @@ int main(int argc, char *argv[]) {
     int testIndexS = round(testPosZ - 0.25) * mapX + round(testPosX);
     int testIndexE = round(testPosZ) * mapX + round(testPosX + 0.25);
     int testIndexW = round(testPosZ) * mapX + round(testPosX - 0.25);
+    int testIndexNE = round(testPosZ + 0.25) * mapX + round(testPosX + 0.25);
+    int testIndexNW = round(testPosZ + 0.25) * mapX + round(testPosX - 0.25);
+    int testIndexSE = round(testPosZ - 0.25) * mapX + round(testPosX + 0.25);
+    int testIndexSW = round(testPosZ - 0.25) * mapX + round(testPosX - 0.25);
     if (testPosX < mapX - 1 + 0.25 && testPosX > -0.25) {
       if (!walls[testIndexE] && !walls[testIndexW]) {
-        charPosX += charDeltaX;
+        if (charDeltaX > 0 && (!walls[testIndexNE] && !walls[testIndexSE] || walls[testIndexN] || walls[testIndexS])) {
+          charPosX += charDeltaX;
+        }
+        if (charDeltaX < 0 && (!walls[testIndexNW] && !walls[testIndexSW] || walls[testIndexN] || walls[testIndexS])) {
+          charPosX += charDeltaX;
+        }
       }
     }
     if (testPosZ < mapY - 1 + 0.25 && testPosZ > -0.25) {
       if (!walls[testIndexN] && !walls[testIndexS]) {
-        charPosZ += charDeltaZ;
+        if (charDeltaZ > 0 && (!walls[testIndexNW] && !walls[testIndexNE] || walls[testIndexE] || walls[testIndexW])) {
+          charPosZ += charDeltaZ;
+        }
+        if (charDeltaZ < 0 && (!walls[testIndexSW] && !walls[testIndexSE] || walls[testIndexE] || walls[testIndexW])) {
+          charPosZ += charDeltaZ;
+        }
       }
     }
 

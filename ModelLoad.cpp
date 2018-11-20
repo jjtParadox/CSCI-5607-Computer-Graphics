@@ -563,7 +563,7 @@ int main(int argc, char *argv[]) {
     GLint uniView = glGetUniformLocation(shaderProgram, "view");
     glUniformMatrix4fv(uniView, 1, GL_FALSE, glm::value_ptr(view));
 
-    glm::mat4 proj = glm::perspective(3.14f/4, aspect, 0.1f, 10.0f);
+    glm::mat4 proj = glm::perspective(3.14f/4, aspect, 0.1f, 100.0f);
                                       //FOV, aspect ratio, near, far
     GLint uniProj = glGetUniformLocation(shaderProgram, "proj");
     glUniformMatrix4fv(uniProj, 1, GL_FALSE, glm::value_ptr(proj));
@@ -580,7 +580,7 @@ int main(int argc, char *argv[]) {
         teapotModel = glm::translate(teapotModel, glm::vec3(keyAPosX, keyAPosY, -0.3f));
         teapotModel = glm::rotate(teapotModel, lastTicks / 1000.0f * 3.14f / 2, glm::vec3(0.0f, 0.0f, 1.0f));
       } else {
-        teapotModel = glm::translate(teapotModel, glm::vec3(charPosX + cos(charRot) * 0.5, charPosZ + sin(charRot) * 0.5, -0.1f));
+        teapotModel = glm::translate(teapotModel, glm::vec3(charPosX + cos(charRot) * 0.5, charPosZ + sin(charRot) * 0.5, -0.1f + charJmpPos * 0.9f));
         teapotModel = glm::scale(teapotModel, glm::vec3(0.4f, 0.4f, 0.4f));
       }
       teapotModel = glm::scale(teapotModel, glm::vec3(0.7f, 0.7f, 0.7f));
